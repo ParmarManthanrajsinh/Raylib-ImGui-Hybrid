@@ -15,7 +15,7 @@ extern "C"
 namespace Core 
 {
 
-    FApplication::FApplication(const std::string& InName, int InWidth, int InHeight)
+    FApplication::FApplication(std::string_view InName, int InWidth, int InHeight)
         : Name(InName), Width(InWidth), Height(InHeight), WindowHandle(nullptr), bIsRunning(false), bRenderLoopFinished(false)
     {
     }
@@ -138,7 +138,7 @@ namespace Core
     {
         // CLAIM CONTEXT on this thread
         glfwMakeContextCurrent(WindowHandle);
-        glfwSwapInterval(0); // Disable VSync for max performance (or 1 if preferred)
+        glfwSwapInterval(1); // Disable VSync for max performance (or 1 if preferred)
 
         // Initialize GLAD / Extensions
         rlLoadExtensions((void*)glfwGetProcAddress);
@@ -161,7 +161,7 @@ namespace Core
         while (bIsRunning)
         {
             double CurrentTime = glfwGetTime();
-            float DeltaSeconds = (float)(CurrentTime - PreviousTime);
+            float DeltaSeconds = static_cast<float>(CurrentTime - PreviousTime);
             PreviousTime = CurrentTime;
 
             // Update Viewport if resized (Atomic read)
@@ -206,7 +206,6 @@ namespace Core
         rlglClose();
         ImGui_ImplOpenGL3_Shutdown();
 
-        // Signal completion
         bRenderLoopFinished = true;
     }
 

@@ -22,7 +22,7 @@ namespace Core
     class FApplication 
     {
     public:
-        FApplication(const std::string& Name = "App", int Width = 1280, int Height = 720);
+        FApplication(std::string_view Name = "App", int Width = 1280, int Height = 720);
         virtual ~FApplication();
 
         void Run();
@@ -59,5 +59,4 @@ namespace Core
         // Timing
         double PreviousTime = 0.0;
     };
-
 }
