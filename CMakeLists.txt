@@ -37,6 +37,7 @@ target_include_directories(imgui PUBLIC
 
 add_executable(raylib_imgui_hybrid
     src/main.cpp
+    src/Core/Application.cpp
 )
 
 target_include_directories(raylib_imgui_hybrid PRIVATE

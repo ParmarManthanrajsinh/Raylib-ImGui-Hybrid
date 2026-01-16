@@ -1,168 +1,156 @@
-// main.cpp
-// Hybrid: GLFW (window) + ImGui (UI & loop) + raylib (offscreen renderer)
+#include "Core/EntryPoint.h"
 
-#include <iostream>
-#include <cstdlib>
+// The user application logic
+class SandboxApp : public Core::Application {
+public:
+    SandboxApp() : Core::Application("Raylib + ImGui Hybrid Engine", 1600, 900) {}
 
-#include <glad/glad.h>
-#include "GLFW/glfw3.h"
+    // Scene Resources
+    RenderTexture2D m_SceneTexture = { 0 };
+    int m_ViewportWidth = 0;
+    int m_ViewportHeight = 0;
+    Model m_CubeModel = { 0 };
+    
+    // Scene State
+    Camera3D m_Camera = { 0 };
+    float m_CubeRotation = 0.0f;
+    float m_RotationSpeed = 1.0f;
+    bool m_DrawWireframe = false;
+    bool m_AutoRotate = true;
 
-#include "imgui.h"
-#include "backends/imgui_impl_glfw.h"
-#include "backends/imgui_impl_opengl3.h"
+    // Visual Settings
+    Color m_BgColor = { 25, 25, 25, 255 };
+    Color m_CubeColor = { 230, 41, 55, 255 }; // Raylib Red
+    Color m_GridColor = { 60, 60, 60, 255 };
 
-extern "C"
-{
-    #include "raylib.h"
-    #include "rlgl.h"
-}
+    void OnStart() override {
+        // Initialize Camera
+        m_Camera.position = Vector3{ 4.0f, 4.0f, 4.0f };
+        m_Camera.target = Vector3{ 0.0f, 0.0f, 0.0f };
+        m_Camera.up = Vector3{ 0.0f, 1.0f, 0.0f };
+        m_Camera.fovy = 45.0f;
+        m_Camera.projection = CAMERA_PERSPECTIVE;
 
-static RenderTexture2D CreateRenderTexture(int Width, int Height)
-{
-    RenderTexture2D RenderTex = LoadRenderTexture(Width, Height);
-    return RenderTex;
-}
+        // Initialize Render Texture (start small, will resize in Update)
+        m_ViewportWidth = 1280;
+        m_ViewportHeight = 720;
+        m_SceneTexture = LoadRenderTexture(m_ViewportWidth, m_ViewportHeight);
 
-int main()
-{
-    if (!glfwInit())
-    {
-        std::cerr << "Failed to init GLFW\n";
-        return EXIT_FAILURE;
+        // Load a Unit Cube Model
+        Mesh mesh = GenMeshCube(1.5f, 1.5f, 1.5f);
+        m_CubeModel = LoadModelFromMesh(mesh);
     }
 
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
-#if __APPLE__
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-#endif
-
-    const int WindowWidth = 1280;
-    const int WindowHeight = 720;
-    GLFWwindow* Window = glfwCreateWindow(WindowWidth, WindowHeight, "ImGui + raylib (offscreen)", nullptr, nullptr);
-    if (!Window)
-    {
-        std::cerr << "Failed to create GLFW window\n";
-        glfwTerminate();
-        return EXIT_FAILURE;
-    }
-
-    glfwMakeContextCurrent(Window);
-    glfwSwapInterval(1);
-
-    rlLoadExtensions((void*)glfwGetProcAddress);
-
-    IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
-    ImGuiIO& IO = ImGui::GetIO(); (void)IO;
-    IO.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-    IO.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
-
-    ImGui::StyleColorsDark();
-
-    ImGui_ImplGlfw_InitForOpenGL(Window, true);
-    ImGui_ImplOpenGL3_Init("#version 330");
-
-    rlglInit(WindowWidth, WindowHeight);
-
-    int ViewportTexW = 1280;
-    int ViewportTexH = 720;
-    RenderTexture2D SceneTexture = CreateRenderTexture(ViewportTexW, ViewportTexH);
-
-    Camera2D Camera = { 0 };
-    Camera.target = Vector2{ 0.0f, 0.0f };
-    Camera.offset = Vector2{ ViewportTexW * 0.5f, ViewportTexH * 0.5f };
-    Camera.zoom = 1.0f;
-
-    // Timing
-    double PreviousTime = glfwGetTime();
-
-    while (!glfwWindowShouldClose(Window))
-    {
-        glfwPollEvents();
-
-        double CurrentTime = glfwGetTime();
-        float DeltaSeconds = (float)(CurrentTime - PreviousTime);
-        PreviousTime = CurrentTime;
-        if (DeltaSeconds <= 0.0f) 
-        {
-            DeltaSeconds = 1.0f / 60.0f;
+    void OnUpdate(float dt) override {
+        // Update Logic
+        if (m_AutoRotate) {
+            m_CubeRotation += (45.0f * dt * m_RotationSpeed);
+            if (m_CubeRotation > 360.0f) m_CubeRotation -= 360.0f;
         }
 
-        BeginTextureMode(SceneTexture);
-        ClearBackground(BLACK);
+        // --- Render Scene to Texture ---
+        BeginTextureMode(m_SceneTexture);
+        ClearBackground(m_BgColor);
 
-        BeginMode2D(Camera);
-        DrawCircle((int)(ViewportTexW * 0.5f), (int)(ViewportTexH * 0.5f), 80.0f, RED);
-        DrawText("raylib offscreen scene", 20, 20, 20, RAYWHITE);
-        EndMode2D();
+        BeginMode3D(m_Camera);
+
+            // Draw Grid
+            DrawGrid(10, 1.0f);
+            
+            // Draw Axes
+            DrawLine3D({0,0,0}, {1,0,0}, RED);
+            DrawLine3D({0,0,0}, {0,1,0}, GREEN);
+            DrawLine3D({0,0,0}, {0,0,1}, BLUE);
+
+            // Draw Rotating Cube
+            Vector3 cubePos = { 0.0f, 0.5f, 0.0f };
+            Vector3 rotationAxis = { 0.0f, 1.0f, 0.0f };
+            Vector3 scale = { 1.0f, 1.0f, 1.0f };
+
+            if (m_DrawWireframe) {
+                DrawModelWiresEx(m_CubeModel, cubePos, rotationAxis, m_CubeRotation, scale, m_CubeColor);
+            } else {
+                DrawModelEx(m_CubeModel, cubePos, rotationAxis, m_CubeRotation, scale, m_CubeColor);
+                DrawModelWiresEx(m_CubeModel, cubePos, rotationAxis, m_CubeRotation, scale, BLACK);
+            }
+
+        EndMode3D();
         EndTextureMode();
+    }
 
-        ImGui_ImplOpenGL3_NewFrame();
-        ImGui_ImplGlfw_NewFrame();
-        ImGui::NewFrame();
+    void OnUIRender() override {
+        // --- DockSpace ---
+        ImGuiID dockSpaceId = ImGui::GetID("MyDockSpace");
+        ImGui::DockSpaceOverViewport(dockSpaceId, ImGui::GetMainViewport(), ImGuiDockNodeFlags_PassthruCentralNode);
 
-        {
-            ImGui::Begin("Controls");
-            ImGui::Text("Delta: %.3f ms (%.1f FPS)", DeltaSeconds * 1000.0f, 1.0f / DeltaSeconds);
-            ImGui::Text("Resize the window; raylib renders into a texture.");
-            ImGui::End();
+        // --- Settings Panel ---
+        ImGui::Begin("Settings");
+        
+        ImGui::TextDisabled("Performance");
+        ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
+        ImGui::Text("Frame Time: %.3f ms", 1000.0f / ImGui::GetIO().Framerate);
+        ImGui::Separator();
+
+        ImGui::TextDisabled("Scene Control");
+        ImGui::Checkbox("Auto Rotate", &m_AutoRotate);
+        if (m_AutoRotate) {
+             ImGui::SliderFloat("Speed", &m_RotationSpeed, 0.0f, 5.0f);
+        } else {
+             ImGui::SliderFloat("Rotation", &m_CubeRotation, 0.0f, 360.0f);
         }
+        ImGui::Checkbox("Wireframe Mode", &m_DrawWireframe);
+        
+        ImGui::Separator();
+        ImGui::TextDisabled("Colors");
+        
+        // Helper to convert Raylib Color to ImVec4 and back
+        auto EditColor = [](const char* label, Color& c) {
+            float col[4] = { c.r / 255.0f, c.g / 255.0f, c.b / 255.0f, c.a / 255.0f };
+            if (ImGui::ColorEdit4(label, col)) {
+                c.r = (unsigned char)(col[0] * 255);
+                c.g = (unsigned char)(col[1] * 255);
+                c.b = (unsigned char)(col[2] * 255);
+                c.a = (unsigned char)(col[3] * 255);
+            }
+        };
 
-        ImGui::Begin("Viewport");
-
-        ImVec2 Avail = ImGui::GetContentRegionAvail();
-        int DesiredW = (int)Avail.x;
-        int DesiredH = (int)Avail.y;
-
-        if (DesiredW > 0 && DesiredH > 0 && (DesiredW != ViewportTexW || DesiredH != ViewportTexH))
-        {
-            UnloadRenderTexture(SceneTexture);
-            ViewportTexW = DesiredW;
-            ViewportTexH = DesiredH;
-            SceneTexture = CreateRenderTexture(ViewportTexW, ViewportTexH);
-
-            Camera.offset = Vector2{ ViewportTexW * 0.5f, ViewportTexH * 0.5f };
-        }
-
-        ImTextureID TexID = (ImTextureID)(intptr_t)SceneTexture.texture.id;
-        ImGui::Image(TexID, ImVec2((float)ViewportTexW, (float)ViewportTexH), ImVec2(0, 1), ImVec2(1, 0));
+        EditColor("Cube Color", m_CubeColor);
+        EditColor("Background", m_BgColor);
 
         ImGui::End();
 
-        ImGui::Render();
+        // --- Viewport Window ---
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
+        ImGui::Begin("Viewport");
+        
+        ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
+        int desiredW = (int)viewportPanelSize.x;
+        int desiredH = (int)viewportPanelSize.y;
 
-        int FrameBufferW, FrameBufferH;
-        glfwGetFramebufferSize(Window, &FrameBufferW, &FrameBufferH);
-        glViewport(0, 0, FrameBufferW, FrameBufferH);
-        glClearColor(0.12f, 0.12f, 0.12f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
-        if (IO.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+        // Resize texture if viewport changed size (and is valid)
+        if (desiredW > 0 && desiredH > 0 && (desiredW != m_ViewportWidth || desiredH != m_ViewportHeight))
         {
-            GLFWwindow* BackupCurrentContext = glfwGetCurrentContext();
-            ImGui::UpdatePlatformWindows();
-            ImGui::RenderPlatformWindowsDefault();
-            glfwMakeContextCurrent(BackupCurrentContext);
+            UnloadRenderTexture(m_SceneTexture);
+            m_ViewportWidth = desiredW;
+            m_ViewportHeight = desiredH;
+            m_SceneTexture = LoadRenderTexture(m_ViewportWidth, m_ViewportHeight);
         }
 
-        glfwSwapBuffers(Window);
+        // Draw the texture
+        // We flip the UVs (0,1) to (1,0) because Raylib renders upside down relative to ImGui/OpenGL coordinates
+        ImTextureID texID = (ImTextureID)(intptr_t)m_SceneTexture.texture.id;
+        ImGui::Image(texID, ImVec2((float)m_ViewportWidth, (float)m_ViewportHeight), ImVec2(0, 1), ImVec2(1, 0));
+
+        ImGui::End();
+        ImGui::PopStyleVar();
     }
 
-    UnloadRenderTexture(SceneTexture);
+    void OnShutdown() override {
+        UnloadRenderTexture(m_SceneTexture);
+        UnloadModel(m_CubeModel);
+    }
+};
 
-    rlglClose();
-
-    ImGui_ImplOpenGL3_Shutdown();
-    ImGui_ImplGlfw_Shutdown();
-    ImGui::DestroyContext();
-
-    glfwDestroyWindow(Window);
-    glfwTerminate();
-
-    return 0;
+Core::Application* CreateApplication() {
+    return new SandboxApp();
 }
