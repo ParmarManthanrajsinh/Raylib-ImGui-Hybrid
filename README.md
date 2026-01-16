@@ -1,24 +1,27 @@
-# Raylib + ImGui Hybrid
+# Raylib + ImGui Hybrid Engine
 
-This project is a clean, modern template that combines **Raylib** with **Dear ImGui**.
+A high-performance codebase template combining **Raylib** (rendering) and **Dear ImGui** (UI) into a robust "Game Engine Editor" architecture. 
 
-It solves a common challenge: **How do I render my Raylib game inside an ImGui window?**
+It features a **Multi-Threaded Render Loop** that completely solves the notorious "Window Freeze" issue on Windows, ensuring your game keeps running smoothly even while dragging, resizing, or clicking the title bar.
 
-By rendering Raylib's output to an offscreen texture and passing it to ImGui, this template gives you a full "Game Engine Editor" layout with docking, resizing, and multiple viewports.
+## 🚀 Key Features
 
-## 🚀 Why this template?
-
-*   **Best of Both Worlds**: Use Raylib's friendly code for your game, and ImGui for your tools.
-*   **Editor-Ready**: Your game runs inside a dockable, resizable panel—just like Unity or Unreal.
-*   **Clean Architecture**: GLFW handles the windowing, preventing conflicts between Raylib and ImGui.
-*   **Zero "DLL Hell"**: Raylib and ImGui are statically linked, so your build is self-contained.
+*   **Hybrid Architecture**: Raylib handles the game scene (offscreen), while ImGui handles the windowing and tools.
+*   **Threaded Rendering**: A dedicated Render Thread decoupled from the OS Event Loop.
+    *   **Zero Freeze**: Dragging/Holding the window does *not* pause the game loop.
+    *   **Zero Stutter**: High-performance, uncapped rendering independent of Windows message pumping.
+*   **Unreal Engine Standards**: The codebase adheres to professional conventions:
+    *   `F` prefix for classes (`FApplication`).
+    *   `b` prefix for booleans.
+    *   PascalCase for members.
+    *   Allman-style formatting.
+*   **Editor-Ready**: Your game runs inside a dockable, resizable viewport—just like Unity or Unreal.
+*   **Self-Contained**: Statically linked dependencies (Raylib + ImGui).
 
 ## 🛠 Prerequisites
 
-You'll just need standard C++ build tools:
-
 *   **CMake** (3.21+)
-*   **C++ Compiler** (Visual Studio 2022, GCC, or Clang)
+*   **C++ Compiler** (Visual Studio 2022 recommended)
 *   **Git**
 
 ## 📦 Getting Started
@@ -31,11 +34,11 @@ You'll just need standard C++ build tools:
     ```
 2.  **Build**:
     ```powershell
-    cmake --build out/build --config Debug
+    cmake --build out/build --config Release
     ```
 3.  **Run**:
     ```powershell
-    .\out\build\Debug\raylib_imgui_hybrid.exe
+    .\out\build\Release\raylib_imgui_hybrid.exe
     ```
 
 ### Linux / macOS
@@ -47,22 +50,38 @@ You'll just need standard C++ build tools:
     ./build/raylib_imgui_hybrid
     ```
 
-## 🧠 Under the Hood
+## 🧠 Architecture Overview
 
-Here is the magic behind the code:
+### 1. The Separation
+Unlike standard Raylib apps, we do not run logic in the main `while(!WindowShouldClose)` loop.
+*   **Main Thread**: Dedicated to OS interaction (`glfwWaitEvents`). It sleeps constantly, waking only for Input/Window messages. This makes the UI feel incredibly responsive.
+*   **Render Thread**: Runs `FApplication::RenderLoop`. This thread owns the OpenGL context and runs as fast as possible, handling all Game Logic and Rendering.
 
-1.  **Manual Start**: We wake up GLFW manually instead of using `InitWindow()`.
-2.  **Raylib "Headless"**: We call `rlglInit()`, which tells Raylib "Get ready to draw, but don't open a window."
-3.  **The Loop**:
-    *   **Draw**: Render the game scene into a Raylib `RenderTexture2D`.
-    *   **Display**: Pass that texture's ID to `ImGui::Image()`.
-    *   **Resize**: If you resize the UI panel, we automatically resize the internal texture to match.
+### 2. The Abstraction
+*   **Core**: The engine logic (`FApplication`, `EntryPoint`) is separated from user code.
+*   **Sandbox**: The user app (`FSandboxApp`) inherits from `FApplication` and simply overrides `OnStart`, `OnUpdate`, and `OnUIRender`.
 
-## 📂 Structure
+### 3. The Coding Standard
+We follow a strict set of rules inspired by Unreal Engine 5:
+*   **Classes**: `class FApplication`
+*   **Variables**: `int Width;`, `bool bIsRunning;`
+*   **Formatting**:
+    ```cpp
+    void Function() 
+    {
+        if (bCondition)
+        {
+            DoSomething();
+        }
+    }
+    ```
 
-*   `src/main.cpp`: The heart of the application.
-*   `external/`: Where Raylib and ImGui live.
-*   `CMakeLists.txt`: The build configuration.
+## 📂 Project Structure
+
+*   `src/Core/`: Engine internals (App loop, Threading, EntryPoint).
+*   `src/main.cpp`: The user application (Sandbox).
+*   `external/`: Raylib and ImGui sources.
+*   `CMakeLists.txt`: Build configuration.
 
 ---
 *License: MIT*
