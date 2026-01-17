@@ -7,6 +7,9 @@
 #include "backends/imgui_impl_glfw.h"
 #include "backends/imgui_impl_opengl3.h"
 
+#include "ApplicationLayout.h"
+#include "ApplicationTheme.h"
+
 extern "C" 
 {
     #include "rlgl.h"
@@ -79,11 +82,9 @@ namespace Core
         // Initialize ImGui on Main Thread (Required for GLFW callbacks)
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
-        ImGuiIO& IO = ImGui::GetIO(); (void)IO;
-        IO.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-        IO.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
-
-        ImGui::StyleColorsDark();
+        
+        SetApplicationTheme();
+        LoadApplicationDefaultIni();
 
         ImGui_ImplGlfw_InitForOpenGL(WindowHandle, true);
 
