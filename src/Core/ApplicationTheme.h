@@ -4,7 +4,7 @@
 
 inline void SetApplicationTheme
 (
-    std::string_view path = "/Raylib-ImGui-Hybrid/src/Core/Roboto-Regular.ttf"
+    std::string_view path = "Roboto-Regular.ttf"
 )
 {
     ImGuiIO& io = ImGui::GetIO();

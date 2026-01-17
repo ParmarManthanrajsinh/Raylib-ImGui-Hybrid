@@ -54,6 +54,16 @@ target_link_libraries(raylib_imgui_hybrid PRIVATE
     imgui
 )
 
+
+# -----------------------------
+# Copy Assets
+# -----------------------------
+add_custom_command(TARGET raylib_imgui_hybrid POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    "${CMAKE_SOURCE_DIR}/src/Core/Roboto-Regular.ttf"
+    "$<TARGET_FILE_DIR:raylib_imgui_hybrid>/Roboto-Regular.ttf"
+)
+
 # -----------------------------
 # Platform-specific
 # -----------------------------
