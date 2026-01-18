@@ -36,7 +36,12 @@ namespace Core
         }
     }
 
-    void FApplication::FramebufferSizeCallback(GLFWwindow* Window, int InWidth, int InHeight)
+    void FApplication::FramebufferSizeCallback
+    (
+        GLFWwindow* Window, 
+        int InWidth, 
+        int InHeight
+    )
     {
         FApplication* App = (FApplication*)glfwGetWindowUserPointer(Window);
         if (App)
