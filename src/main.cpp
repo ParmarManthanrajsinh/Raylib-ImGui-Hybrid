@@ -1,10 +1,59 @@
 #include "Core/EntryPoint.h"
+#include "imterm/terminal.hpp"
+#include "imterm/terminal_helpers.hpp"
+
+#include <cstdarg>
+#include <cstdio>
+
+// Global terminal pointer for the log callback
+static ImTerm::terminal<ImTerm::terminal_helper_example<int>>* GlobalTerminal = nullptr;
+
+// Custom Log Callback for Raylib
+void CustomLogCallback(int msgType, const char* text, va_list args)
+{
+    if (!GlobalTerminal) return;
+
+    // Filter out trace/debug logs if needed, but for now we capture all valid levels
+    ImTerm::message::severity::severity_t Severity = ImTerm::message::severity::info;
+
+    switch (msgType)
+    {
+    case LOG_TRACE: Severity = ImTerm::message::severity::trace; break;
+    case LOG_DEBUG: Severity = ImTerm::message::severity::debug; break;
+    case LOG_INFO:  Severity = ImTerm::message::severity::info; break;
+    case LOG_WARNING: Severity = ImTerm::message::severity::warn; break;
+    case LOG_ERROR: Severity = ImTerm::message::severity::err; break;
+    case LOG_FATAL: Severity = ImTerm::message::severity::critical; break;
+    default: break;
+    }
+
+    char Buffer[1024];
+    vsnprintf(Buffer, sizeof(Buffer), text, args);
+
+    ImTerm::message Msg;
+    Msg.severity = Severity;
+    Msg.value = std::string(Buffer);
+    Msg.color_beg = Msg.color_end = 0; // No custom color range for now
+
+    GlobalTerminal->add_message(std::move(Msg));
+}
+
+
 
 // The user application logic
 class FSandboxApp : public Core::FApplication 
 {
 public:
-    FSandboxApp() : Core::FApplication("Raylib + ImGui Hybrid Engine", 1600, 900) {}
+    // Terminal
+    using TerminalHelper = ImTerm::terminal_helper_example<int>; // Simple int state for now
+    ImTerm::terminal<TerminalHelper> Terminal;
+    int TerminalState = 0;
+
+    FSandboxApp() 
+        : Core::FApplication("Raylib + ImGui Hybrid Engine", 1600, 900)
+        , Terminal(TerminalState, "Console") // Initialize Terminal with reference to state
+    {
+    }
 
     // Scene Resources
     RenderTexture2D SceneTexture = { 0 };
@@ -24,8 +73,22 @@ public:
     Color CubeColor = { 230, 41, 55, 255 }; // Raylib Red
     Color GridColor = { 60, 60, 60, 255 };
 
+
+
     void OnStart() override 
     {
+        // Terminal setup
+        GlobalTerminal = &Terminal;
+        SetTraceLogCallback(CustomLogCallback);
+
+        Terminal.theme() = ImTerm::themes::cherry; // Matches our red theme nicely
+        Terminal.set_min_log_level(ImTerm::message::severity::trace); // Capture everything
+        Terminal.log_level_text() = std::nullopt; // Disable log level selector dropdown
+        Terminal.set_autocomplete_pos(ImTerm::position::nowhere); // Disable autocomplete popup
+
+        Terminal.add_text("Welcome to Raylib + ImGui Hybrid Engine!");
+        Terminal.add_text("Type 'help' for commands (or 'echo <text>').");
+
         // Initialize Camera
         Camera.position = Vector3{ 4.0f, 4.0f, 4.0f };
         Camera.target = Vector3{ 0.0f, 0.0f, 0.0f };
@@ -131,6 +194,15 @@ public:
 
         ImGui::End();
 
+        // --- Terminal Window ---
+        // We defer to ImTerm to handle its own window via show()
+        // But we want it to be part of our docking layout
+        if (ImGui::Begin("Console", nullptr)) 
+        {
+            Terminal.show();
+        }
+        ImGui::End();
+
         // --- Viewport Window ---
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
         ImGui::Begin("Viewport");
@@ -161,6 +233,9 @@ public:
     {
         UnloadRenderTexture(SceneTexture);
         UnloadModel(CubeModel);
+        
+        SetTraceLogCallback(NULL);
+        GlobalTerminal = nullptr;
     }
 };
 
@@ -168,3 +243,19 @@ Core::FApplication* CreateApplication()
 {
     return new FSandboxApp();
 }
+
+#ifdef _WIN32
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+
+#define WIN32_LEAN_AND_MEAN
+#define NOGDI
+#define NOUSER
+
+#include <Windows.h>
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
+{
+    return main(__argc, __argv);
+}
+#endif

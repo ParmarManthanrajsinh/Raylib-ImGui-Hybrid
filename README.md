@@ -4,6 +4,8 @@ A high-performance codebase template combining **Raylib** (rendering) and **Dear
 
 It features a **Multi-Threaded Render Loop** that completely solves the notorious "Window Freeze" issue on Windows, ensuring your game keeps running smoothly even while dragging, resizing, or clicking the title bar.
 
+![](Showcase.gif)
+
 ## 🚀 Key Features
 
 *   **Hybrid Architecture**: Raylib handles the game scene (offscreen), while ImGui handles the windowing and tools.
