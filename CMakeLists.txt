@@ -35,12 +35,13 @@ target_include_directories(imgui PUBLIC
     external/raylib/src/external/glfw/include
 )
 
-add_executable(raylib_imgui_hybrid
+add_executable(raylib_imgui_hybrid WIN32
     src/main.cpp
     src/Core/Application.cpp
 )
 
 target_include_directories(raylib_imgui_hybrid PRIVATE
+    src
     external/raylib/src
 )
 
@@ -53,6 +54,8 @@ target_link_libraries(raylib_imgui_hybrid PRIVATE
     raylib
     imgui
 )
+
+add_compile_definitions(NOMINMAX)
 
 
 # -----------------------------
