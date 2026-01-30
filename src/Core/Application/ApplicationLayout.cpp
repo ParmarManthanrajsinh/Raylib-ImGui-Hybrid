@@ -19,9 +19,9 @@ Collapsed=0
 
 [Window][Viewport]
 Pos=0,0
-Size=1600,900
+Size=1251,900
 Collapsed=0
-DockId=0xE098E157,0
+DockId=0x00000001,0
 
 [Window][WindowOverViewport_11111111]
 Pos=0,0
@@ -33,8 +33,17 @@ Pos=36,36
 Size=435,480
 Collapsed=0
 
+[Window][Inspector]
+Pos=1253,0
+Size=347,900
+Collapsed=0
+DockId=0x00000002,0
+
 [Docking][Data]
-DockSpace ID=0xE098E157 Window=0x1BBC0F80 Pos=0,0 Size=1600,900 CentralNode=1 HiddenTabBar=1 Selected=0xC450F867
+DockSpace   ID=0x06D1653D Window=0x1BBC0F80 Pos=0,0 Size=1600,900 Split=X
+  DockNode  ID=0x00000001 Parent=0x06D1653D SizeRef=1251,900 CentralNode=1 HiddenTabBar=1 Selected=0xC450F867
+  DockNode  ID=0x00000002 Parent=0x06D1653D SizeRef=347,900 Selected=0x36DC96AB
+DockSpace   ID=0xE098E157 Pos=0,0 Size=1600,900 CentralNode=1 HiddenTabBar=1 Selected=0xC450F867
 )";
 
 void LoadApplicationDefaultIni()

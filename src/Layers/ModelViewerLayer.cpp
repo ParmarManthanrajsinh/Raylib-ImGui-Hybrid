@@ -112,9 +112,9 @@ namespace Core {
         }
 
         // 1. Handle Input for Blender-Style Orbit Camera
-        // MMB = Orbit, Shift+MMB = Pan, Scroll = Zoom
+        // MLB = Orbit, Shift+MLB = Pan, Scroll = Zoom
         
-        bool bMiddleClick = FInput::IsMouseButtonPressed(MOUSE_BUTTON_MIDDLE);
+        bool bLeftClick = FInput::IsMouseButtonPressed(MOUSE_LEFT_BUTTON);
         bool bShiftDown = FInput::IsKeyPressed(KEY_LEFT_SHIFT) || FInput::IsKeyPressed(KEY_RIGHT_SHIFT);
         
         if (bViewportHovered || bViewportFocused)
@@ -129,7 +129,7 @@ namespace Core {
             
             float Sensitivity = 0.005f;
 
-            if (bMiddleClick)
+            if (bLeftClick)
             {
                 if (bShiftDown)
                 {
@@ -230,7 +230,9 @@ namespace Core {
                 if (LoadedModel.IsValid())
                 {
                     if (bDrawWireframe)
+                    {
                         DrawModelWiresEx(LoadedModel, Pos, Axis, ModelRotation, Scale, WHITE);
+                    }
                     else
                     {
                         DrawModelEx(LoadedModel, Pos, Axis, ModelRotation, Scale, WHITE);
