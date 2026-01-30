@@ -1,6 +1,8 @@
 #include "Application.h"
 #include "Core/Logging/Log.h"
+#include "Core/Logging/Log.h"
 #include "Core/Input/Input.h"
+#include "Core/Events/MouseEvent.h"
 
 #include <glad/glad.h>
 #include "GLFW/glfw3.h"
@@ -104,6 +106,33 @@ namespace Core
         }
     }
 
+    void FApplication::WindowDropCallback(GLFWwindow* Window, int Count, const char** Paths)
+    {
+        FApplication* App = (FApplication*)glfwGetWindowUserPointer(Window);
+        if (App)
+        {
+            std::vector<std::string> PathList;
+            PathList.reserve(Count);
+            for (int i = 0; i < Count; i++)
+            {
+                PathList.emplace_back(Paths[i]);
+            }
+
+            FWindowDropEvent Event(PathList);
+            App->OnEvent(Event);
+        }
+    }
+
+    void FApplication::ScrollCallback(GLFWwindow* Window, double XOffset, double YOffset)
+    {
+        FApplication* App = (FApplication*)glfwGetWindowUserPointer(Window);
+        if (App)
+        {
+            FMouseScrolledEvent Event((float)XOffset, (float)YOffset);
+            App->OnEvent(Event);
+        }
+    }
+
     void FApplication::Run()
     {
         if (!glfwInit())
@@ -132,6 +161,8 @@ namespace Core
         glfwSetWindowUserPointer(WindowHandle, this);
         glfwSetFramebufferSizeCallback(WindowHandle, FramebufferSizeCallback);
         glfwSetWindowCloseCallback(WindowHandle, WindowCloseCallback);
+        glfwSetDropCallback(WindowHandle, WindowDropCallback);
+        glfwSetScrollCallback(WindowHandle, ScrollCallback);
 
         // Initialize ImGui on Main Thread (Required for GLFW callbacks)
         IMGUI_CHECKVERSION();

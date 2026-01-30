@@ -63,4 +63,25 @@ namespace Core {
         EVENT_CLASS_TYPE(AppRender)
         EVENT_CLASS_CATEGORY(EventCategoryApplication)
     };
+
+    class FWindowDropEvent : public FEvent
+    {
+    public:
+        FWindowDropEvent(const std::vector<std::string>& InPaths)
+            : Paths(InPaths) {}
+
+        [[nodiscard]] const std::vector<std::string>& GetPaths() const { return Paths; }
+
+        [[nodiscard]] std::string ToString() const override
+        {
+            std::stringstream ss;
+            ss << "WindowDropEvent: " << Paths.size() << " files";
+            return ss.str();
+        }
+
+        EVENT_CLASS_TYPE(WindowDrop)
+        EVENT_CLASS_CATEGORY(EventCategoryApplication | EventCategoryInput)
+    private:
+        std::vector<std::string> Paths;
+    };
 }

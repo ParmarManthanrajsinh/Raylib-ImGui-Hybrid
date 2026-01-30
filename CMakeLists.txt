@@ -61,6 +61,8 @@ set(SOURCES
     src/Core/Logging/Log.cpp
     src/Core/Logging/Log.h
     src/Core/Renderer/ScopedResources.h
+    src/Layers/ModelViewerLayer.cpp
+    src/Layers/ModelViewerLayer.h
 )
 
 add_executable(raylib_imgui_hybrid ${SOURCES})

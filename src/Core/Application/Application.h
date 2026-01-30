@@ -55,6 +55,8 @@ namespace Core
     private:
         static void FramebufferSizeCallback(GLFWwindow* Window, int Width, int Height);
         static void WindowCloseCallback(GLFWwindow* Window);
+        static void WindowDropCallback(GLFWwindow* Window, int Count, const char** Paths);
+        static void ScrollCallback(GLFWwindow* Window, double XOffset, double YOffset);
 
         bool OnWindowClose(FWindowCloseEvent& e);
         bool OnWindowResize(FWindowResizeEvent& e);
