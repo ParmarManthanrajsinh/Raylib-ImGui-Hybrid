@@ -1,13 +1,75 @@
 #include "ModelViewerLayer.h"
+#include "Core/Renderer/ModelLoader.h"
+#include "Core/Input/Input.h"
 #include "Core/Input/Input.h"
 #include "Core/Logging/Log.h"
 #include "Core/Events/MouseEvent.h"
 #include <imgui.h>
+#include <imgui_internal.h>
+#include <raymath.h>
 #include <format>
 #include <cmath>
 #include <algorithm> // for std::clamp
 
 namespace Core {
+
+    static void DrawVec3Control(const std::string& label, Vector3& values, float resetValue = 0.0f, float columnWidth = 100.0f)
+    {
+        ImGui::PushID(label.c_str());
+
+        ImGui::Columns(2);
+        ImGui::SetColumnWidth(0, columnWidth);
+        ImGui::Text(label.c_str());
+        ImGui::NextColumn();
+
+        ImGui::PushMultiItemsWidths(3, ImGui::CalcItemWidth());
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2{ 0, 0 });
+
+        float lineHeight = ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2.0f;
+        ImVec2 buttonSize = { lineHeight + 3.0f, lineHeight };
+
+        // X Axis
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{ 0.8f, 0.1f, 0.15f, 1.0f });
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.9f, 0.2f, 0.2f, 1.0f });
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.8f, 0.1f, 0.15f, 1.0f });
+        if (ImGui::Button("X", buttonSize)) values.x = resetValue;
+        ImGui::PopStyleColor(3);
+
+        ImGui::SameLine();
+        ImGui::DragFloat("##X", &values.x, 0.1f, 0.0f, 0.0f, "%.2f");
+        ImGui::PopItemWidth();
+        ImGui::SameLine();
+
+        // Y Axis
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{ 0.2f, 0.7f, 0.2f, 1.0f });
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.3f, 0.8f, 0.3f, 1.0f });
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.2f, 0.7f, 0.2f, 1.0f });
+        if (ImGui::Button("Y", buttonSize)) values.y = resetValue;
+        ImGui::PopStyleColor(3);
+
+        ImGui::SameLine();
+        ImGui::DragFloat("##Y", &values.y, 0.1f, 0.0f, 0.0f, "%.2f");
+        ImGui::PopItemWidth();
+        ImGui::SameLine();
+
+        // Z Axis
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{ 0.1f, 0.25f, 0.8f, 1.0f });
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.2f, 0.35f, 0.9f, 1.0f });
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.1f, 0.25f, 0.8f, 1.0f });
+        if (ImGui::Button("Z", buttonSize)) values.z = resetValue;
+        ImGui::PopStyleColor(3);
+
+        ImGui::SameLine();
+        ImGui::DragFloat("##Z", &values.z, 0.1f, 0.0f, 0.0f, "%.2f");
+        ImGui::PopItemWidth();
+
+        ImGui::PopStyleVar();
+
+        ImGui::Columns(1);
+
+        ImGui::PopID();
+        ImGui::Spacing();
+    }
 
     ModelViewerLayer::ModelViewerLayer()
         : FLayer("ModelViewer")
@@ -52,13 +114,13 @@ namespace Core {
 
             if (!PathToLoad.empty())
             {
-                // Now we are on Render Thread -> GL Context is Active!
                 if (IsFileExtension(PathToLoad.c_str(), ".obj") || 
                     IsFileExtension(PathToLoad.c_str(), ".gltf") || 
                     IsFileExtension(PathToLoad.c_str(), ".glb") || 
-                    IsFileExtension(PathToLoad.c_str(), ".iqm"))
+                    IsFileExtension(PathToLoad.c_str(), ".iqm") ||
+                    IsFileExtension(PathToLoad.c_str(), ".fbx"))
                 {
-                    Model NewModel = LoadModel(PathToLoad.c_str());
+                    Model NewModel = ModelLoader::LoadModel(PathToLoad); // Use our custom loader abstraction
                     
                     // Validate model
                     if (NewModel.meshCount > 0)
@@ -204,8 +266,8 @@ namespace Core {
         // Auto Rotate Model
         if (bAutoRotate)
         {
-            ModelRotation += (90.0f * DeltaTime * RotationSpeed);
-            if (ModelRotation > 360.0f) ModelRotation -= 360.0f;
+            ModelRotation.y += (90.0f * DeltaTime * RotationSpeed);
+            if (ModelRotation.y > 360.0f) ModelRotation.y -= 360.0f;
         }
 
         // 2. Render Scene
@@ -223,20 +285,29 @@ namespace Core {
                 DrawLine3D({0,0,0}, {0,1,0}, GREEN);
                 DrawLine3D({0,0,0}, {0,0,1}, BLUE);
 
-                Vector3 Pos = { 0, 0, 0 };
-                Vector3 Axis = { 0, 1, 0 };
-                Vector3 Scale = { 1, 1, 1 };
-
                 if (LoadedModel.IsValid())
                 {
+                    Model& M = (Model&)LoadedModel;
+
+                    // Apply Transform
+                    // Reconstruct transform matrix (Scale -> Rotate -> Translate)
+                    Matrix matScale = MatrixScale(ModelScale.x, ModelScale.y, ModelScale.z);
+                    Matrix matRot = MatrixRotateXYZ({ DEG2RAD * ModelRotation.x, DEG2RAD * ModelRotation.y, DEG2RAD * ModelRotation.z });
+                    Matrix matTrans = MatrixTranslate(ModelPosition.x, ModelPosition.y, ModelPosition.z);
+                    
+                    M.transform = MatrixMultiply(MatrixMultiply(matScale, matRot), matTrans);
+
                     if (bDrawWireframe)
                     {
-                        DrawModelWiresEx(LoadedModel, Pos, Axis, ModelRotation, Scale, WHITE);
+                        // DrawModelWires uses the model's transform if we pass identity position/rotation/scale to the function?
+                        // DrawModelWires(model, position, scale, color);
+                        // It applies position and scale ON TOP of model.transform.
+                        // So we pass 0,0,0 and 1.0f.
+                        DrawModelWires(M, {0,0,0}, 1.0f, WHITE);
                     }
                     else
                     {
-                        DrawModelEx(LoadedModel, Pos, Axis, ModelRotation, Scale, WHITE);
-                        // Optional Wires overlay ?
+                        DrawModel(M, {0,0,0}, 1.0f, WHITE);
                     }
                 }
 
@@ -310,6 +381,12 @@ namespace Core {
         {
             ImGui::Text("No Model Loaded");
         }
+
+        ImGui::Separator();
+        ImGui::TextDisabled("Transform");
+        DrawVec3Control("Location", ModelPosition);
+        DrawVec3Control("Rotation", ModelRotation);
+        DrawVec3Control("Scale", ModelScale, 1.0f);
 
         ImGui::Separator();
         ImGui::TextDisabled("Settings");

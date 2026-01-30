@@ -61,6 +61,9 @@ set(SOURCES
     src/Core/Logging/Log.cpp
     src/Core/Logging/Log.h
     src/Core/Renderer/ScopedResources.h
+    src/Core/Renderer/ModelLoader.cpp
+    src/Core/Renderer/ModelLoader.h
+    src/Core/Vendor/ufbx.c
     src/Layers/ModelViewerLayer.cpp
     src/Layers/ModelViewerLayer.h
 )

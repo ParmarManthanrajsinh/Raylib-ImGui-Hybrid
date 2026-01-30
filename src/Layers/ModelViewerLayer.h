@@ -51,7 +51,12 @@ namespace Core {
         bool bDrawWireframe = false;
         bool bAutoRotate = false;
         float RotationSpeed = 0.5f;
-        float ModelRotation = 0.0f;
+
+
+        // Transform
+        Vector3 ModelPosition = { 0.0f, 0.0f, 0.0f };
+        Vector3 ModelRotation = { 0.0f, 0.0f, 0.0f };
+        Vector3 ModelScale = { 1.0f, 1.0f, 1.0f };
 
         // Stats
         std::string CurrentFilePath = "Drag a 3D model here";
