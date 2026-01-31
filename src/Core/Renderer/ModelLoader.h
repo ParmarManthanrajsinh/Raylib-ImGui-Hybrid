@@ -9,10 +9,10 @@ namespace Core {
     {
     public:
         // Returns an invalid model (meshCount == 0) on failure
-        static Model LoadModel(const std::string& Path);
+        static Model LoadModel(std::string_view Path);
         
     private:
-        static Model LoadFBX(const std::string& Path);
+        static Model LoadFBX(std::string_view Path);
     };
 
 }

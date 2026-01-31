@@ -8,27 +8,27 @@
 
 namespace Core {
 
-    Model ModelLoader::LoadModel(const std::string& Path)
+    Model ModelLoader::LoadModel(std::string_view Path)
     {
-        if (IsFileExtension(Path.c_str(), ".fbx"))
+        if (IsFileExtension(Path.data(), ".fbx"))
         {
             return LoadFBX(Path);
         }
         else
         {
             // Fallback to Raylib default loader
-            return ::LoadModel(Path.c_str());
+            return ::LoadModel(Path.data());
         }
     }
 
-    Model ModelLoader::LoadFBX(const std::string& Path)
+    Model ModelLoader::LoadFBX(std::string_view Path)
     {
         ufbx_load_opts opts = { 0 }; 
         opts.target_axes = ufbx_axes_right_handed_y_up; 
         opts.target_unit_meters = 1.0f;
 
         ufbx_error error;
-        ufbx_scene* scene = ufbx_load_file(Path.c_str(), &opts, &error);
+        ufbx_scene* scene = ufbx_load_file(Path.data(), &opts, &error);
 
         if (!scene)
         {
