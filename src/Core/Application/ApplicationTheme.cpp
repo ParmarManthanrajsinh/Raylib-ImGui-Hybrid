@@ -1,7 +1,8 @@
 #include "ApplicationTheme.h"
 #include <imgui.h>
 
-namespace Core {
+namespace Core 
+{
 
     void SetApplicationTheme(std::string_view Path)
     {

@@ -3,7 +3,8 @@
 #include "raylib.h"
 #include <string>
 
-namespace Core {
+namespace Core 
+{
 
     class ModelLoader
     {

@@ -6,7 +6,8 @@
 
 #include <vector>
 
-namespace Core {
+namespace Core 
+{
 
     Model ModelLoader::LoadModel(std::string_view Path)
     {
