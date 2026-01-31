@@ -3,8 +3,8 @@
 #include "raylib.h"
 #include <utility>
 
-namespace Core {
-
+namespace Core 
+{
     class FScopedTexture
     {
     public:

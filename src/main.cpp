@@ -1,5 +1,6 @@
 #include "Core/Application/Application.h"
 #include "Core/Renderer/ScopedResources.h"
+#include "Core/Application/EntryPoint.h"
 
 // The user application logic
 class FSandboxApp : public Core::FApplication 
@@ -208,5 +209,3 @@ Core::FApplication* CreateApplication()
 {
     return new FSandboxApp();
 }
-
-#include "Core/Application/EntryPoint.h"

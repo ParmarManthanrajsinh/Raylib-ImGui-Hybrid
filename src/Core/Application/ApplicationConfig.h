@@ -1,8 +1,8 @@
 #pragma once
 #include <string>
 
-namespace Core {
-
+namespace Core 
+{
     struct FApplicationConfig
     {
         std::string Name = "Raylib Hybrid App";
