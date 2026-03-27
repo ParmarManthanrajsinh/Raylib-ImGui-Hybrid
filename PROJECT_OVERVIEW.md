@@ -29,12 +29,12 @@ Logic is compartmentalized into **Layers**. The application maintains a `LayerSt
 ### 3. Event System
 The engine features a robust **Event Dispatcher** system. Events (WindowResize, KeyPressed, MouseMoved) are propagated through layers. Layers can "consume" events to prevent them from bubbling down (e.g., if ImGui captures the mouse, the game camera shouldn't move).
 
-### 4. Renderer & Resource Management (`ScopedResources`)
-To prevent memory leaks and manual resource management hell, the engine uses **RAII (Resource Acquisition Is Initialization)** wrappers:
-- **`FScopedRenderTexture`**: Manages Framebuffers. Automatically reloads when resized.
-- **`FScopedModel`**: Wraps Raylib Models, ensuring `UnloadModel` is called when the object goes out of scope.
+### 4. Renderer & Resource Management
+To prevent memory leaks and manual resource management hell, the engine utilizes **raylib-cpp**, a comprehensive object-oriented wrapper for the Raylib API.
+- All Raylib C-structs are replaced with their C++ counterparts (e.g., `raylib::Model`, `raylib::RenderTexture2D`).
+- These classes function as **RAII (Resource Acquisition Is Initialization)** wrappers, automatically calling `Unload()` in their destructors.
 
-This ensures that resources are Exception-Safe and automatically cleaned up.
+*Note on Global/Layer lifetimes:* Because the OpenGL Context is destroyed early on the Main Thread during `Application::Run`, global objects are wrapped in `std::optional<T>` and explicitly reset (`.reset()`) during `OnShutdown()` which runs on the Render Thread. This ensures safe cleanup while the GPU context is still valid.
 
 ## Key Build Technologies
 - **CMake**: The build system orchestrates the compilation of Raylib, ImGui (docking branch), and the engine source.

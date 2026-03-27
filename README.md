@@ -27,9 +27,9 @@ This project is not just a wrapper; it is a **Full Application Framework** desig
     *   Blocking: If a Layer handles an event (`bHandled = true`), lower layers never see it.
 
 ### Developer Experience
-*   **Unreal Engine Style**: Clean, professional naming conventions (`FClass`, `bBool`, PascalCase).
-*   **Hot-Reloadable UI**: ImGui docking layout prevents window clutter.
-*   **RAII Wrappers**: `FScopedTexture`, `FScopedModel`, and `FScopedRenderTexture` ensure you never leak VRAM.
+*   **Unreal Engine Style Architecture**: Clean, professional naming conventions (`FClass`, `bBool`, PascalCase) mixed with C++ standards.
+*   **Object-Oriented API**: Fully integrated with **raylib-cpp**, providing overloaded math operators and inline method calls instead of verbose C-functions.
+*   **RAII Resource Safety**: Seamless VRAM management. Models and Textures automatically unload when they go out of scope.
 *   **Logging**: Thread-safe colored logging via `FLog`.
 
 ---
@@ -91,9 +91,11 @@ PushOverlay(new ConsoleLayer());
 ```
 
 ### 3. Resource Management (RAII)
-We strictly avoid manual `Load/Unload` calls to prevent leaks.
-*   **Bad**: `Texture2D tex = LoadTexture(...)` (Requires manual `UnloadTexture`)
-*   **Good**: `Core::FScopedTexture tex("assets/hero.png");` (Automatic cleanup)
+We strictly avoid manual `Load/Unload` calls to prevent leaks. Through the **raylib-cpp** library, all backend C-structs are wrapped in classes holding their own lifecycles.
+*   **Bad (C-Style)**: `Texture2D tex = LoadTexture(...)` (Requires manual `UnloadTexture`)
+*   **Good (C++-Style)**: `raylib::Texture tex("assets/hero.png");` (Automatic cleanup)
+
+*Warning*: If you initialize resources at the Application level class, wrap them in `std::optional<raylib::Model>` and `.reset()` them during `OnShutdown()` so they unload *before* the OpenGL context terminates on the render thread.
 
 ---
 
