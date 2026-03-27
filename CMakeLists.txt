@@ -60,7 +60,6 @@ set(SOURCES
     src/Core/Layers/LayerStack.h
     src/Core/Logging/Log.cpp
     src/Core/Logging/Log.h
-    src/Core/Renderer/ScopedResources.h
 )
 
 add_executable(raylib_imgui_hybrid ${SOURCES})
@@ -68,6 +67,7 @@ add_executable(raylib_imgui_hybrid ${SOURCES})
 target_include_directories(raylib_imgui_hybrid PRIVATE
     src
     external/raylib/src
+    external/raylib-cpp/include
 )
 
 target_include_directories(raylib_imgui_hybrid PRIVATE

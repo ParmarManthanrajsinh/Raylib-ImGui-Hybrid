@@ -12,12 +12,7 @@
 #include "Core/Application/ApplicationConfig.h"
 
 // Forward declaration to avoid including internal headers in the public API if possible, 
-// strictly speaking user asked to use raylib methods, so including raylib.h here is good 
-// so they don't have to include it manually in every file deriving from Application.
-extern "C" 
-{
-    #include "raylib.h" 
-}
+#include <raylib-cpp.hpp>
 
 struct GLFWwindow;
 

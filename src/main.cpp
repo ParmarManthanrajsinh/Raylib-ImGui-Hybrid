@@ -1,5 +1,6 @@
 #include "Core/Application/Application.h"
-#include "Core/Renderer/ScopedResources.h"
+#include <raylib-cpp.hpp>
+#include <optional>
 #include "Core/Application/EntryPoint.h"
 
 // The user application logic
@@ -12,11 +13,11 @@ public:
     }
 
     // Scene Resources
-    Core::FScopedRenderTexture SceneTexture;
-    Core::FScopedModel CubeModel;
+    std::optional<raylib::RenderTexture2D> SceneTexture;
+    std::optional<raylib::Model> CubeModel;
     
     // Scene State
-    Camera3D Camera = { 0 };
+    raylib::Camera3D Camera;
     int ViewportWidth = 0;
     int ViewportHeight = 0;
     
@@ -30,29 +31,27 @@ public:
     bool bAutoRotate = true;
 
     // Visual Settings
-    Color BgColor = { 25, 25, 25, 255 };
-    Color CubeColor = { 230, 41, 55, 255 }; 
-    Color GridColor = { 60, 60, 60, 255 };
+    raylib::Color BgColor = raylib::Color(25, 25, 25, 255);
+    raylib::Color CubeColor = raylib::Color(230, 41, 55, 255); 
+    raylib::Color GridColor = raylib::Color(60, 60, 60, 255);
 
     void OnStart() override 
     {
         // Initialize Camera
-        Camera.position = Vector3{ 4.0f, 4.0f, 4.0f };
-        Camera.target = Vector3{ 0.0f, 0.0f, 0.0f };
-        Camera.up = Vector3{ 0.0f, 1.0f, 0.0f };
+        Camera.position = raylib::Vector3(4.0f, 4.0f, 4.0f);
+        Camera.target = raylib::Vector3(0.0f, 0.0f, 0.0f);
+        Camera.up = raylib::Vector3(0.0f, 1.0f, 0.0f);
         Camera.fovy = 45.0f;
         Camera.projection = CAMERA_PERSPECTIVE;
 
         // Initialize Render Texture
         ViewportWidth = DesiredViewportWidth;
         ViewportHeight = DesiredViewportHeight;
-        SceneTexture.Load(ViewportWidth, ViewportHeight);
+        SceneTexture.emplace(ViewportWidth, ViewportHeight);
 
         // Load a Unit Cube Model
-        // Note: GenMeshCube creates a mesh on heap, LoadModelFromMesh takes ownership? 
-        // Raylib docs: "The loaded model owns the mesh" -> UnloadModel unloads mesh.
         Mesh CubeMesh = GenMeshCube(1.5f, 1.5f, 1.5f);
-        CubeModel.Set(LoadModelFromMesh(CubeMesh));
+        CubeModel.emplace(CubeMesh);
     }
 
     void OnUpdate(float DeltaTime) override 
@@ -64,7 +63,7 @@ public:
         {
             ViewportWidth = DesiredViewportWidth;
             ViewportHeight = DesiredViewportHeight;
-            SceneTexture.Load(ViewportWidth, ViewportHeight);
+            SceneTexture.emplace(ViewportWidth, ViewportHeight);
         }
 
         // --- Update Logic ---
@@ -75,12 +74,12 @@ public:
         }
 
         // --- Render Scene to Texture ---
-        if (SceneTexture.IsValid())
+        if (SceneTexture.has_value() && SceneTexture->IsValid())
         {
-            BeginTextureMode(SceneTexture);
-            ClearBackground(BgColor);
+            SceneTexture->BeginMode();
+            BgColor.ClearBackground();
 
-            BeginMode3D(Camera);
+            Camera.BeginMode();
 
                 // Draw Grid
                 DrawGrid(10, 1.0f);
@@ -91,30 +90,22 @@ public:
                 DrawLine3D({0,0,0}, {0,0,1}, BLUE);
 
                 // Draw Rotating Cube
-                Vector3 CubePos = { 0.0f, 0.5f, 0.0f };
-                Vector3 RotationAxis = { 0.0f, 1.0f, 0.0f };
-                Vector3 Scale = { 1.0f, 1.0f, 1.0f };
+                const raylib::Vector3 CubePos(0.0f, 0.5f, 0.0f);
+                const raylib::Vector3 RotationAxis(0.0f, 1.0f, 0.0f);
+                const raylib::Vector3 Scale(1.0f, 1.0f, 1.0f);
 
                 if (bDrawWireframe) 
                 {
-                    DrawModelWiresEx
-                    (
-                        CubeModel, 
-                        CubePos, 
-                        RotationAxis, 
-                        CubeRotation, 
-                        Scale, 
-                        CubeColor
-                    );
+                    CubeModel->DrawWires(CubePos, RotationAxis, CubeRotation, Scale, CubeColor);
                 } 
                 else 
                 {
-                    DrawModelEx(CubeModel, CubePos, RotationAxis, CubeRotation, Scale, CubeColor);
-                    DrawModelWiresEx(CubeModel, CubePos, RotationAxis, CubeRotation, Scale, BLACK);
+                    CubeModel->Draw(CubePos, RotationAxis, CubeRotation, Scale, CubeColor);
+                    CubeModel->DrawWires(CubePos, RotationAxis, CubeRotation, Scale, BLACK);
                 }
 
-            EndMode3D();
-            EndTextureMode();
+            Camera.EndMode();
+            SceneTexture->EndMode();
         }
     }
 
@@ -151,7 +142,7 @@ public:
         ImGui::Separator();
         ImGui::TextDisabled("Colors");
         
-        auto EditColor = [](const char* Label, Color& C) 
+        auto EditColor = [](const char* Label, raylib::Color& C) 
         {
             float Col[4] = { C.r / 255.0f, C.g / 255.0f, C.b / 255.0f, C.a / 255.0f };
             if (ImGui::ColorEdit4(Label, Col)) 
@@ -178,10 +169,10 @@ public:
         DesiredViewportHeight = static_cast<int>(ViewportPanelSize.y);
 
         // Draw the texture
-        if (SceneTexture.IsValid())
+        if (SceneTexture.has_value() && SceneTexture->IsValid())
         {
             // We flip the UVs (0,1) to (1,0) because Raylib renders upside down relative to ImGui/OpenGL coordinates
-            ImTextureID TexID = (ImTextureID)(intptr_t)SceneTexture.GetTexture().id;
+            ImTextureID TexID = (ImTextureID)(intptr_t)SceneTexture->GetTexture().id;
             ImGui::Image
             (
                 TexID, 
@@ -201,7 +192,9 @@ public:
 
     void OnShutdown() override 
     {
-        // Manual unloading removed! RAII usage handles this.
+        // Must clear RAII resources while OpenGL context is still active on this thread!
+        SceneTexture.reset();
+        CubeModel.reset();
     }
 };
 
