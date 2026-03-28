@@ -97,6 +97,8 @@ namespace Core
             for (auto& Layer : LayerStack)
                 Layer->OnRender();
 
+            OnRender();
+
             for (auto& Layer : LayerStack)
                 Layer->OnUIRender();
 
