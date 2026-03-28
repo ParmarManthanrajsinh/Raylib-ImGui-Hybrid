@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
-project(raylib_imgui_hybrid LANGUAGES C CXX)
+project(raylib_engine_hybrid LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -12,14 +12,9 @@ set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(BUILD_GAMES OFF CACHE BOOL "" FORCE)
 set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
 
-# -----------------------------
 # Dependencies
-# -----------------------------
-
-# raylib
 add_subdirectory(external/raylib)
 
-# ImGui
 add_library(imgui
     external/imgui/imgui.cpp
     external/imgui/imgui_draw.cpp
@@ -35,78 +30,10 @@ target_include_directories(imgui PUBLIC
     external/raylib/src/external/glfw/include
 )
 
-
-# Source Files - Explicit List for Build Determinism
-set(SOURCES 
-    src/main.cpp
-    src/Core/Application/Application.cpp
-    src/Core/Application/Application.h
-    src/Core/Application/ApplicationConfig.h
-    src/Core/Application/ApplicationLayout.cpp
-    src/Core/Application/ApplicationLayout.h
-    src/Core/Application/ApplicationTheme.cpp
-    src/Core/Application/ApplicationTheme.h
-    src/Core/Application/EntryPoint.h
-    src/Core/Base/Core.h
-    src/Core/Events/ApplicationEvent.h
-    src/Core/Events/Event.h
-    src/Core/Events/KeyEvent.h
-    src/Core/Events/MouseEvent.h
-    src/Core/Input/Input.cpp
-    src/Core/Input/Input.h
-    src/Core/Layers/Layer.cpp
-    src/Core/Layers/Layer.h
-    src/Core/Layers/LayerStack.cpp
-    src/Core/Layers/LayerStack.h
-    src/Core/Logging/Log.cpp
-    src/Core/Logging/Log.h
-)
-
-add_executable(raylib_imgui_hybrid ${SOURCES})
-
-target_include_directories(raylib_imgui_hybrid PRIVATE
-    src
-    external/raylib/src
-    external/raylib-cpp/include
-)
-
-target_include_directories(raylib_imgui_hybrid PRIVATE
-    external/raylib/src/external/glfw/include
-    external/glad/include
-)
-
-target_link_libraries(raylib_imgui_hybrid PRIVATE
-    raylib
-    imgui
-)
-
 add_compile_definitions(NOMINMAX)
-target_compile_definitions(raylib_imgui_hybrid PRIVATE 
-    $<$<CONFIG:Debug>:CORE_DEBUG>
-)
 
-
-# -----------------------------
-# Copy Assets
-# -----------------------------
-add_custom_command(TARGET raylib_imgui_hybrid POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-    "${CMAKE_SOURCE_DIR}/src/Core/Roboto-Regular.ttf"
-    "$<TARGET_FILE_DIR:raylib_imgui_hybrid>/Roboto-Regular.ttf"
-)
-
-# -----------------------------
-# Platform-specific
-# -----------------------------
-if (WIN32)
-    target_link_libraries(raylib_imgui_hybrid PRIVATE opengl32)
-elseif (UNIX AND NOT APPLE)
-    target_link_libraries(raylib_imgui_hybrid PRIVATE GL X11 pthread dl)
-elseif (APPLE)
-    target_link_libraries(raylib_imgui_hybrid PRIVATE
-        "-framework OpenGL"
-        "-framework Cocoa"
-        "-framework IOKit"
-        "-framework CoreVideo"
-    )
-endif()
+# Modules
+add_subdirectory(Engine)
+add_subdirectory(Game)
+add_subdirectory(Editor)
+add_subdirectory(GameLauncher)

@@ -1,59 +1,55 @@
 # Raylib-ImGui Hybrid Engine
 
 ## Project Overview
-This project is a high-performance, modern C++ game engine framework that hybridizes **Raylib** for 3D/2D rendering and **ImGui** for sophisticated tooling and user interfaces. It is designed with a **Layer-based Architecture** inspired by professional game engines (like Hazel or Unreal Engine patterns), promoting clean separation of concerns and modularity.
+This project is a high-performance, modern C++ (C++23) game engine framework that hybridizes **Raylib** for 3D/2D rendering and **ImGui** for sophisticated tooling and user interfaces. It is designed with a **Modular 4-Pillar Architecture** heavily inspired by professional AAA game engines (like Unreal Engine and Hazel), promoting a pristine separation of concerns between tools, platform logic, and gameplay.
 
-The core philosophy is **"Code as Data, UI as Tooling"**. The engine manages the heavy lifting—windowing, events, rendering contexts—allowing developers to focus on gameplay logic and editor tools.
+The core philosophy is **"Code as Data, UI as Tooling"**. The engine manages the heavy lifting—hardware windowing, events, VRAM asset caching, rendering contexts—allowing developers to focus entirely on pure gameplay logic and robust editor environments securely.
 
-## Architecture
+## Core Architecture (The 4 Pillars)
 
-### 1. Core Application Loop (`Core::FApplication`)
-The heart of the engine is the `FApplication` class. It manages the lifecycle of the software:
-- **Initialization**: Sets up the GLFW window, initializes Raylib, and configures the ImGui context (including Docking and Viewports).
-- **Game Loop**: A decoupled loop that handles:
-  1.  **Poll Events**: Inputs are captured and dispatched.
-  2.  **Layer Updates**: Logic ($T_{delta}$) is processed.
-  3.  **UI Rendering**: ImGui frames are generated.
-  4.  **Render**: The final composite is presented to the screen.
-- **Shutdown**: RAII-compliant cleanup of all resources.
+### 1. `Engine.lib` (The Framework Backend)
+The foundation of the software. It has zero knowledge of your specific game or heavy editor toolchains (no ImGui logic).
+- **Initialization**: Single-Threaded native Raylib window lifecycle management.
+- **Game Loop**: A decoupled `FApplication` loop that handles:
+  1.  **Poll Events**: WindowResize, KeyPressed, MouseMoved are dispatched.
+  2.  **Layer Updates**: Logic ($T_{delta}$) is ticked natively.
+  3.  **UI Rendering**: Virtual hook `OnUIRender` for transparent GUI layers.
+  4.  **Hardware Render**: `BeginDrawing`/`EndDrawing` macros perfectly bound to the loop.
+- **Resource Limits**: RAII-compliant cleanup of all VRAM resources on explicit `CloseWindow()`.
 
-### 2. Layer System (`Core::FLayer`)
-Logic is compartmentalized into **Layers**. The application maintains a `LayerStack`.
-- **OnAttach()**: Called when the layer is added (Initialization).
-- **OnUpdate(DeltaTime)**: Frame-by-frame logic execution.
-- **OnUIRender()**: dedicated pass for ImGui widgets.
-- **OnEvent(Event)**: Event interception (mouse clicks, key presses).
+### 2. `Game.lib` (Your Game Logic)
+Developers spend 90% of their time here. Compiles as a static library containing all game rules, levels, and logic.
+- Inherits from `Core::FLayer` (`FGameLayer`) which holds an `ActiveScene`.
+- You spawn objects (Entities) by grabbing `raylib::Models` from the `AssetManager` securely.
 
-*Example Usage:* A typical game might have a `GameLayer` for physics/rendering and a `UILayer` for the HUD.
+### 3. `Editor.exe` (The Development Tool)
+- Embeds both `Engine.lib` and `Game.lib`. 
+- Heavily utilizes the `ImGui` docking branch. 
+- It intercepts the `GameLayer`'s rendering pipeline and actively redirects its geometry into an **ImGui Viewport Panel**! Provides Scene Hierarchies and realtime Property Inspectors.
 
-### 3. Event System
-The engine features a robust **Event Dispatcher** system. Events (WindowResize, KeyPressed, MouseMoved) are propagated through layers. Layers can "consume" events to prevent them from bubbling down (e.g., if ImGui captures the mouse, the game camera shouldn't move).
+### 4. `GameLauncher.exe` (The Shipped Game)
+- A highly optimized, microscopic executable that you ship to players.
+- Completely strips out ImGui and visual editor overhead.
+- Simply pushes your identical `Game.lib` directly to the native OS window natively.
 
-### 4. Renderer & Resource Management
-To prevent memory leaks and manual resource management hell, the engine utilizes **raylib-cpp**, a comprehensive object-oriented wrapper for the Raylib API.
-- All Raylib C-structs are replaced with their C++ counterparts (e.g., `raylib::Model`, `raylib::RenderTexture2D`).
-- These classes function as **RAII (Resource Acquisition Is Initialization)** wrappers, automatically calling `Unload()` in their destructors.
+## Key Engine Subsystems
 
-*Note on Global/Layer lifetimes:* Because the OpenGL Context is destroyed early on the Main Thread during `Application::Run`, global objects are wrapped in `std::optional<T>` and explicitly reset (`.reset()`) during `OnShutdown()` which runs on the Render Thread. This ensures safe cleanup while the GPU context is still valid.
+### System: Asset Manager
+To prevent memory leaks and VRAM dropping, the engine utilizes a central `Core::AssetManager`. 
+Because `std::vector` resizes operations dynamically copy memory blocks, if Entities directly stored raw `raylib::Model` classes, their underlying GPUs textures would silently self-destruct during the vector relocation via their RAII destructors. The Asset Manager mitigates this exactly by caching raw memory models safely in a `std::unordered_map` and only handing out lightweight `std::shared_ptr<raylib::Model>` references to dynamic level components.
+
+### System: The Layer Stack
+Logic is compartmentalized into **Layers** (`Core::FLayer`). The application maintains a `LayerStack`.
+- **OnAttach()**: Called when the layer is added (Initialization/Spawning).
+- **OnUpdate(DeltaTime)**: Frame-by-frame entity manipulation logic.
+- **OnUIRender()**: Native GPU drawing hook executing safely inside standard raylib blocks.
+- **OnEvent(Event)**: Event interception (mouse dynamics). Layers can flag `bHandled` to prevent events bubbling deep into the game world if they click on UI.
 
 ## Key Build Technologies
-- **CMake**: The build system orchestrates the compilation of Raylib, ImGui (docking branch), and the engine source.
-- **C++20**: Utilizing modern features like `std::format`, `concepts`, and specific casts for type safety.
-- **Raylib**: Backend for OpenGL context and drawing.
-- **Dear ImGui**: Backend for Editor UI, Inspector panels, and Docking.
+- **CMake**: The build system dynamically orchestrates `add_subdirectory` hierarchies for all four module pillars simultaneously.
+- **CMakeSettings.json**: The `Release` profile engages extreme MSVC flags including **AVX2** SIMD arrays, Native Fast-Math CPU instructions, and full Interprocedural **Link-Time-Optimization (LTCG / GL)**.
+- **C++23**: Utilizing modern features like generic lambdas, `std::shared_ptr` concepts, and `<concepts>` logic masking for extreme type safety.
+- **raylib-cpp**: Backend for Object-Oriented wrapper functionality over the standard Raylib C-structs.
 
-## Code Map
-- **`src/main.cpp`**: The user-side application definition (`FSandboxApp`). This is where you consume the engine API.
-- **`src/Core/Application/`**: Application lifecycle and Entry Point.
-- **`src/Core/Layers/`**: Base Layer classes.
-- **`src/Core/Renderer/`**: Abstractions for Raylib resources.
-- **`src/Core/Events/`**: Event definitions and Dispatcher logic.
-
-## Getting Started
-The current `main.cpp` implements a **Sandbox**:
-- A 3D Viewport rendered to a Framebuffer.
-- An ImGui Dockspace with a "Settings" panel.
-- Real-time manipulation of a 3D Cube (Rotation, Color, Wireframe).
-- Automatic viewport resizing handling.
-
-This architecture serves as a solid foundation for building complex tools, 3D viewers, or games with integrated editors.
+## Current State
+This architecture serves as a perfectly scalable cornerstone for building modern 3D games and complex proprietary visual editing tools synchronously.

@@ -4,21 +4,17 @@
 #include <thread>
 #include <atomic>
 #include <mutex>
-#include "imgui.h"
+#include <raylib-cpp.hpp>
 
 #include "Core/Events/Event.h"
 #include "Core/Events/ApplicationEvent.h"
 #include "Core/Layers/LayerStack.h"
 #include "Core/Application/ApplicationConfig.h"
 
-// Forward declaration to avoid including internal headers in the public API if possible, 
-#include <raylib-cpp.hpp>
-
 struct GLFWwindow;
 
 namespace Core 
 {
-
     class FApplication 
     {
     public:
@@ -32,14 +28,20 @@ namespace Core
         void PushLayer(FLayer* InLayer);
         void PushOverlay(FLayer* InLayer);
 
-        // Legacy Virtuals
+        // Virtual Hooks for Injected Systems (Like ImGui/Editor tooling)
+        virtual void OnMainThreadInit() {}
+        virtual void OnMainThreadShutdown() {}
+        virtual void OnRenderThreadInit() {}
+        virtual void OnRenderThreadShutdown() {}
+        virtual void OnPreUpdate() {}
+        virtual void OnPostRender() {}
+
+        // User Virtuals
         virtual void OnStart() {}
         virtual void OnUpdate(float DeltaTime) {}
         virtual void OnUIRender() {}
         virtual void OnShutdown() {}
         
-        // Internal usage for thread
-        void RenderLoop();
         [[nodiscard]] GLFWwindow* GetWindow() const { return WindowHandle; }
         
         // Sync data
@@ -48,9 +50,6 @@ namespace Core
         void SetSize(int NewWidth, int NewHeight) { Width = NewWidth; Height = NewHeight; }
 
     private:
-        static void FramebufferSizeCallback(GLFWwindow* Window, int Width, int Height);
-        static void WindowCloseCallback(GLFWwindow* Window);
-
         bool OnWindowClose(FWindowCloseEvent& e);
         bool OnWindowResize(FWindowResizeEvent& e);
 
@@ -64,13 +63,7 @@ namespace Core
         
         FLayerStack LayerStack;
 
-        // Threading
-        std::thread RenderThread;
-        std::atomic<bool> bIsRunning;
-        std::atomic<bool> bRenderLoopFinished;
-        
-        // Timing
-        double PreviousTime = 0.0;
+        bool bIsRunning;
     
     private:
         static FApplication* s_Instance;

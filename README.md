@@ -1,6 +1,6 @@
 # Raylib + ImGui Hybrid Engine
 
-A high-performance codebase template providing a robust **Game Engine Architecture** by combining **Raylib** for rendering and **Dear ImGui** for tooling.
+A high-performance codebase template providing a robust **AAA Modular Game Engine Architecture** by combining **Raylib** for rendering and **Dear ImGui** for advanced editor tooling.
 
 ![Badge](https://img.shields.io/badge/Language-C++23-blue)
 ![Badge](https://img.shields.io/badge/Platform-Windows%20|%20Linux%20|%20macOS-lightgrey)
@@ -10,26 +10,20 @@ A high-performance codebase template providing a robust **Game Engine Architectu
 
 ## 📖 Overview
 
-This project is not just a wrapper; it is a **Full Application Framework** designed to solve common challenges in Game Development tooling:
-*   **Multi-Threaded Architecture**: Solves the "Window Freeze" issue on Windows. Game logic runs on a dedicated thread, ensuring 100% responsiveness even when blocking the OS message loop.
-*   **Event-Driven**: A propagation system similar to professional engines (Unreal/Unity), allowing UI overlay layers to block events from reaching the game world.
-*   **Modern C++ Standards**: Built with **C++23** features, enforcing strict type safety, RAII resource management, and clean code practices.
-*   **Editor-Ready**: Includes a pre-configured Docking layout, Viewport rendering, and Console logging.
+This project is a highly-optimized **Full Application Framework**. It mirrors the architecture of professional-grade software like Godot and Unreal Engine, physically decoupling your tools from your core shipping game logic.
+
+*   **Modular 4-Pillar Architecture**: Splits development into `Engine.lib`, `Game.lib`, `Editor.exe`, and a hyper-lightweight `GameLauncher.exe`.
+*   **VRAM Safe AssetManager**: Global registry pattern protecting GPU meshes and textures from accidental STL reallocation destructions.
+*   **Event-Driven**: A propagation system allowing UI overlay layers to cleanly block OS events from hitting the game world securely.
+*   **Modern C++ Standards**: Built with **C++23** features, enforcing strict type safety, smart pointers, RAII management, and generic lambdas.
+*   **LTO Accelerated**: Includes a highly optimized `CMakeSettings.json` injecting `AVX2`, Fast-Math, and Link-Time-Optimization globally for the Release binary.
 
 ## 🚀 Features
 
-### Core Architecture
-*   **Hybrid Rendering**: Raylib renders to an offscreen framebuffer, which is then drawn as an ImGui Image. This allows your game to exist as a "Window" within the Editor toolset.
-*   **Layer Stack**: Modularize your logic. Push an `Overlay` for UI (always on top) or a `Layer` for game worlds.
-*   **Event System**: 
-    *   Categories: `Application`, `Input`, `Keyboard`, `Mouse`.
-    *   Dispatch: `FEventDispatcher` uses C++ Concepts to ensure type safety.
-    *   Blocking: If a Layer handles an event (`bHandled = true`), lower layers never see it.
-
 ### Developer Experience
-*   **Unreal Engine Style Architecture**: Clean, professional naming conventions (`FClass`, `bBool`, PascalCase) mixed with C++ standards.
-*   **Object-Oriented API**: Fully integrated with **raylib-cpp**, providing overloaded math operators and inline method calls instead of verbose C-functions.
-*   **RAII Resource Safety**: Seamless VRAM management. Models and Textures automatically unload when they go out of scope.
+*   **Unreal Engine Style Architecture**: Clean, professional naming conventions (`FClass`, `bBool`, PascalCase) mixed with deep modern C++ standard integration.
+*   **Object-Oriented API**: Fully integrated with **raylib-cpp**, providing overloaded math operators and inline method calls inherently over legacy C-functions.
+*   **Editor-Ready**: The included `Editor.exe` uses a pre-configured Docking layout, Viewport rendering extraction, and Inspector mapping. Code your game once, and visualize it dynamically in the Editor dynamically.
 *   **Logging**: Thread-safe colored logging via `FLog`.
 
 ---
@@ -50,52 +44,49 @@ This project is not just a wrapper; it is a **Full Application Framework** desig
     ```
 
 2.  **Build (Windows)**
+    Using PowerShell, configure the modular CMake project and build the Release configuration natively:
     ```powershell
     cmake -S . -B out/build
     cmake --build out/build --config Release
     ```
 
-3.  **Run**
+3.  **Run the Editor**
     ```powershell
-    .\out\build\Release\raylib_imgui_hybrid.exe
+    .\out\build\Editor\Release\Editor.exe
+    ```
+
+4.  **Run the Shipped Game**
+    Test the standalone minimal footprint of your underlying simulation:
+    ```powershell
+    .\out\build\GameLauncher\Release\GameLauncher.exe
     ```
 
 ---
 
 ## 🧠 Deep Dive: Systems
 
-### 1. The Threading Model
-Unlike a standard game loop `while(!WindowShouldClose)`, we decouple the **OS Loop** from the **Render Loop**.
-*   **Main Thread**: Handles `glfwWaitEvents`. It sleeps until the OS sends a signal (Mouse, Key, Resize). This keeps the app roughly 0% CPU usage when idle and incredibly responsive.
-*   **Render Thread**: Runs `FApplication::RenderLoop`. This acts as the "Game Thread". It owns the OpenGL Context and pumps frames as fast as `Interval` allows.
+### 1. The Asset Manager & VRAM Protection
+We strictly avoid manual `Load/Unload` lifecycles on the Game Layer. Through the `Core::AssetManager`, physical model loading requests are cached centrally in a `std::unordered_map` and distributed out as `std::shared_ptr<raylib::Model>`.
+*   **The Benefit**: When copying arrays of generated Entities via `std::vector`, underlying GPU materials are securely preserved by reference. 
+*   **The Safety**: The Application framework manually invokes `AssetManager::Clear()` to deliberately sweep all GPU data accurately moments before OpenGL unlinks natively.
 
 ### 2. The Layer Stack
-Everything in the engine is a `FLayer`. 
+Everything in the engine executes within a `FLayer`. 
 ```cpp
 class GameLayer : public Core::FLayer {
     void OnUpdate(float DeltaTime) override {
-        // Run Physics, AI, Game Logic
+        // Run Physics, Transforms, Game Logic via ActiveScene
     }
     void OnUIRender() override {
-        // Draw ImGui Windows
-    }
-    void OnEvent(Core::FEvent& Event) override {
-        // Handle Input
+        // Request visual models accurately natively onto Raylib's BeginDrawing context
     }
 };
 ```
-Pushing layers is done in your Application constructor:
+Pushing layers into the host Application stack configures them automatically:
 ```cpp
-PushLayer(new GameLayer());
-PushOverlay(new ConsoleLayer());
+// Inside GameLauncher.exe
+PushLayer(new FGameLayer());
 ```
-
-### 3. Resource Management (RAII)
-We strictly avoid manual `Load/Unload` calls to prevent leaks. Through the **raylib-cpp** library, all backend C-structs are wrapped in classes holding their own lifecycles.
-*   **Bad (C-Style)**: `Texture2D tex = LoadTexture(...)` (Requires manual `UnloadTexture`)
-*   **Good (C++-Style)**: `raylib::Texture tex("assets/hero.png");` (Automatic cleanup)
-
-*Warning*: If you initialize resources at the Application level class, wrap them in `std::optional<raylib::Model>` and `.reset()` them during `OnShutdown()` so they unload *before* the OpenGL context terminates on the render thread.
 
 ---
 
