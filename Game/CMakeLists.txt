@@ -1,4 +1,5 @@
 set(SOURCES 
+    src/GameComponents.h
     src/GameLayer.cpp
     src/GameLayer.h
 )

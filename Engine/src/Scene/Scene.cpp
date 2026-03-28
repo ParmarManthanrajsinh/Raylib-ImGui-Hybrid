@@ -28,6 +28,7 @@ namespace Core
 
     void FScene::OnUpdate(float DeltaTime) 
     {
-        // Entity Physics & Component Logic Iterations
+        // Engine-level systems (physics, etc.) would go here.
+        // Game-specific logic belongs in the Game module.
     }
 }
