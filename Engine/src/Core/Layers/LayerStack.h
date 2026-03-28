@@ -4,31 +4,34 @@
 #include "Layer.h"
 
 #include <vector>
+#include <memory>
 
 namespace Core {
 
     class FLayerStack
     {
     public:
-        FLayerStack();
+        FLayerStack() = default;
         ~FLayerStack();
 
-        void PushLayer(FLayer* InLayer);
-        void PushOverlay(FLayer* InOverlay);
+        // Takes ownership of the layer. Returns a non-owning pointer for the caller to cache.
+        FLayer* PushLayer(FLayer* InLayer);
+        FLayer* PushOverlay(FLayer* InOverlay);
         void PopLayer(FLayer* InLayer);
         void PopOverlay(FLayer* InOverlay);
 
-        std::vector<FLayer*>::iterator begin() { return Layers.begin(); }
-        std::vector<FLayer*>::iterator end() { return Layers.end(); }
-        std::vector<FLayer*>::reverse_iterator rbegin() { return Layers.rbegin(); }
-        std::vector<FLayer*>::reverse_iterator rend() { return Layers.rend(); }
+        // Iteration — yields raw pointers (non-owning views)
+        std::vector<std::unique_ptr<FLayer>>::iterator begin() { return Layers.begin(); }
+        std::vector<std::unique_ptr<FLayer>>::iterator end() { return Layers.end(); }
+        std::vector<std::unique_ptr<FLayer>>::reverse_iterator rbegin() { return Layers.rbegin(); }
+        std::vector<std::unique_ptr<FLayer>>::reverse_iterator rend() { return Layers.rend(); }
 
-        std::vector<FLayer*>::const_iterator begin() const { return Layers.begin(); }
-        std::vector<FLayer*>::const_iterator end() const { return Layers.end(); }
-        std::vector<FLayer*>::const_reverse_iterator rbegin() const { return Layers.rbegin(); }
-        std::vector<FLayer*>::const_reverse_iterator rend() const { return Layers.rend(); }
+        std::vector<std::unique_ptr<FLayer>>::const_iterator begin() const { return Layers.begin(); }
+        std::vector<std::unique_ptr<FLayer>>::const_iterator end() const { return Layers.end(); }
+        std::vector<std::unique_ptr<FLayer>>::const_reverse_iterator rbegin() const { return Layers.rbegin(); }
+        std::vector<std::unique_ptr<FLayer>>::const_reverse_iterator rend() const { return Layers.rend(); }
     private:
-        std::vector<FLayer*> Layers;
+        std::vector<std::unique_ptr<FLayer>> Layers;
         unsigned int LayerInsertIndex = 0;
     };
 

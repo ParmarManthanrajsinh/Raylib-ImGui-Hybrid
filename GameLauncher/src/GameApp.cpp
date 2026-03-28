@@ -19,13 +19,9 @@ public:
         PushLayer(GameLayer);
     }
 
-    void OnUpdate(float DeltaTime) override 
+    void OnRender() override
     {
-    }
-
-    void OnUIRender() override
-    {
-        // Must execute natively within the Application's BeginDrawing() block!
+        // 3D scene rendering belongs in the render pass, not the UI pass
         GameLayer->RenderScene();
     }
 };

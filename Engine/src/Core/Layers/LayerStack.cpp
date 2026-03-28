@@ -3,50 +3,50 @@
 
 namespace Core {
 
-    FLayerStack::FLayerStack()
-    {
-    }
-
     FLayerStack::~FLayerStack()
     {
-        for (FLayer* Layer : Layers)
+        for (auto& Layer : Layers)
         {
             Layer->OnDetach();
-            delete Layer;
         }
+        // unique_ptrs auto-delete when the vector is destroyed
     }
 
-    void FLayerStack::PushLayer(FLayer* InLayer)
+    FLayer* FLayerStack::PushLayer(FLayer* InLayer)
     {
-        Layers.emplace(Layers.begin() + LayerInsertIndex, InLayer);
+        Layers.emplace(Layers.begin() + LayerInsertIndex, std::unique_ptr<FLayer>(InLayer));
         LayerInsertIndex++;
         InLayer->OnAttach();
+        return InLayer;
     }
 
-    void FLayerStack::PushOverlay(FLayer* InOverlay)
+    FLayer* FLayerStack::PushOverlay(FLayer* InOverlay)
     {
-        Layers.emplace_back(InOverlay);
+        Layers.emplace_back(std::unique_ptr<FLayer>(InOverlay));
         InOverlay->OnAttach();
+        return InOverlay;
     }
 
     void FLayerStack::PopLayer(FLayer* InLayer)
     {
-        auto it = std::find(Layers.begin(), Layers.begin() + LayerInsertIndex, InLayer);
+        auto it = std::find_if(Layers.begin(), Layers.begin() + LayerInsertIndex,
+            [InLayer](const std::unique_ptr<FLayer>& ptr) { return ptr.get() == InLayer; });
         if (it != Layers.begin() + LayerInsertIndex)
         {
-            InLayer->OnDetach();
-            Layers.erase(it);
+            (*it)->OnDetach();
+            Layers.erase(it);  // unique_ptr destructor deletes the layer
             LayerInsertIndex--;
         }
     }
 
     void FLayerStack::PopOverlay(FLayer* InOverlay)
     {
-        auto it = std::find(Layers.begin() + LayerInsertIndex, Layers.end(), InOverlay);
+        auto it = std::find_if(Layers.begin() + LayerInsertIndex, Layers.end(),
+            [InOverlay](const std::unique_ptr<FLayer>& ptr) { return ptr.get() == InOverlay; });
         if (it != Layers.end())
         {
-            InOverlay->OnDetach();
-            Layers.erase(it);
+            (*it)->OnDetach();
+            Layers.erase(it);  // unique_ptr destructor deletes the layer
         }
     }
 

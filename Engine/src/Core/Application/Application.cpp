@@ -11,6 +11,8 @@ extern "C"
     #include "rlgl.h"
 }
 
+#include <memory>
+
 namespace Core 
 {
     FApplication* FApplication::s_Instance = nullptr;
@@ -45,6 +47,7 @@ namespace Core
             if (InEvent.bHandled) break;
             (*It)->OnEvent(InEvent);
         }
+        // Note: (*It) is a unique_ptr<FLayer>&, calling ->OnEvent dereferences correctly.
     }
 
     bool FApplication::OnWindowClose(FWindowCloseEvent& e)
@@ -82,7 +85,7 @@ namespace Core
 
             OnPreUpdate();
 
-            for (FLayer* Layer : LayerStack)
+            for (auto& Layer : LayerStack)
                 Layer->OnUpdate(DeltaSeconds);
 
             OnUpdate(DeltaSeconds);
@@ -91,7 +94,10 @@ namespace Core
             BeginDrawing();
             ClearBackground(raylib::Color{30, 30, 30, 255});
 
-            for (FLayer* Layer : LayerStack)
+            for (auto& Layer : LayerStack)
+                Layer->OnRender();
+
+            for (auto& Layer : LayerStack)
                 Layer->OnUIRender();
 
             OnUIRender();

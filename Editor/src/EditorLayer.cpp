@@ -1,6 +1,7 @@
 #include "EditorLayer.h"
 #include "GameLayer.h"
 #include "Core/Application/Application.h"
+#include "Scene/Components.h"
 #include "imgui.h"
 #include <cstring>
 
@@ -23,8 +24,9 @@ void EditorLayer::OnDetach()
 
 void EditorLayer::OnUpdate(float DeltaTime) 
 {
-    // The GameLayer is in the Application LayerStack, so it gets OnUpdate() ticked automatically.
-    // EditorLayer handles sizing the viewport and capturing the GameLayer's output!
+    // Guard: if the GameLayer's scene was reset, our SelectedEntity's FScene* is dangling
+    if (GameLayerContext && !GameLayerContext->GetScene())
+        SelectedEntity = Core::FEntity{};
 
     if (DesiredViewportWidth > 0 && DesiredViewportHeight > 0 && 
        (DesiredViewportWidth != ViewportWidth || DesiredViewportHeight != ViewportHeight))
@@ -33,13 +35,16 @@ void EditorLayer::OnUpdate(float DeltaTime)
         ViewportHeight = DesiredViewportHeight;
         ViewportTexture.emplace(ViewportWidth, ViewportHeight);
     }
+}
 
+void EditorLayer::OnRender()
+{
+    // Capture the GameLayer's 3D output into our RenderTexture for ImGui display
     if (ViewportTexture.has_value() && ViewportTexture->IsValid() && GameLayerContext)
     {
         ViewportTexture->BeginMode();
         raylib::Color(30, 30, 30, 255).ClearBackground();
 
-        // Let the Game render its state visually directly into our ImGui Viewport frame!
         GameLayerContext->RenderScene();
 
         ViewportTexture->EndMode();
@@ -61,18 +66,19 @@ void EditorLayer::DrawHierarchyPanel()
     ImGui::Begin("Scene Hierarchy");
     if (GameLayerContext && GameLayerContext->GetScene())
     {
-        auto& Entities = GameLayerContext->GetScene()->GetEntities();
-        for (int i = 0; i < Entities.size(); ++i)
+        auto& Registry = GameLayerContext->GetScene()->GetRegistry();
+        Registry.view<Core::TagComponent>().each([&](auto entity, auto& tag) 
         {
-            ImGuiTreeNodeFlags flags = ((SelectedEntityIndex == i) ? ImGuiTreeNodeFlags_Selected : 0) | ImGuiTreeNodeFlags_Leaf;
-            bool opened = ImGui::TreeNodeEx((void*)(intptr_t)i, flags, "%s", Entities[i].Name.c_str());
-            if (ImGui::IsItemClicked()) SelectedEntityIndex = i;
+            Core::FEntity e(entity, GameLayerContext->GetScene().get());
+            ImGuiTreeNodeFlags flags = ((SelectedEntity == e) ? ImGuiTreeNodeFlags_Selected : 0) | ImGuiTreeNodeFlags_Leaf;
+            bool opened = ImGui::TreeNodeEx((void*)(intptr_t)(uint32_t)entity, flags, "%s", tag.Name.c_str());
+            if (ImGui::IsItemClicked()) SelectedEntity = e;
             if (opened) ImGui::TreePop();
-        }
+        });
     }
 
     if (ImGui::IsMouseDown(0) && ImGui::IsWindowHovered())
-        SelectedEntityIndex = -1;
+        SelectedEntity = Core::FEntity{};
 
     ImGui::End();
 }
@@ -80,37 +86,48 @@ void EditorLayer::DrawHierarchyPanel()
 void EditorLayer::DrawInspectorPanel()
 {
     ImGui::Begin("Properties");
-    if (GameLayerContext && GameLayerContext->GetScene() && SelectedEntityIndex != -1 && SelectedEntityIndex < GameLayerContext->GetScene()->GetEntities().size())
+    if (SelectedEntity)
     {
-        auto& Ent = GameLayerContext->GetScene()->GetEntities()[SelectedEntityIndex];
-        char buffer[256];
-        strncpy(buffer, Ent.Name.c_str(), sizeof(buffer) - 1);
-        buffer[sizeof(buffer)-1] = 0;
-        
-        if (ImGui::InputText("Name", buffer, sizeof(buffer))) Ent.Name = buffer;
-
-        ImGui::Separator();
-        float pos[3] = { Ent.Transform.Position.x, Ent.Transform.Position.y, Ent.Transform.Position.z };
-        if (ImGui::DragFloat3("Position", pos, 0.1f)) Ent.Transform.Position = {pos[0], pos[1], pos[2]};
-
-        float rot[3] = { Ent.Transform.RotationAxis.x, Ent.Transform.RotationAxis.y, Ent.Transform.RotationAxis.z };
-        if (ImGui::DragFloat3("Rot Axis", rot, 0.1f)) Ent.Transform.RotationAxis = {rot[0], rot[1], rot[2]};
-        ImGui::DragFloat("Angle", &Ent.Transform.Angle, 1.0f, 0.0f, 360.0f);
-
-        float scale[3] = { Ent.Transform.Scale.x, Ent.Transform.Scale.y, Ent.Transform.Scale.z };
-        if (ImGui::DragFloat3("Scale", scale, 0.1f)) Ent.Transform.Scale = {scale[0], scale[1], scale[2]};
-
-        ImGui::Separator();
-        float col[4] = { Ent.EntColor.r / 255.0f, Ent.EntColor.g / 255.0f, Ent.EntColor.b / 255.0f, Ent.EntColor.a / 255.0f };
-        if (ImGui::ColorEdit4("Color", col)) 
+        if (SelectedEntity.HasComponent<Core::TagComponent>())
         {
-            Ent.EntColor.r = static_cast<unsigned char>(col[0] * 255);
-            Ent.EntColor.g = static_cast<unsigned char>(col[1] * 255);
-            Ent.EntColor.b = static_cast<unsigned char>(col[2] * 255);
-            Ent.EntColor.a = static_cast<unsigned char>(col[3] * 255);
+            auto& tag = SelectedEntity.GetComponent<Core::TagComponent>();
+            char buffer[256];
+            strncpy(buffer, tag.Name.c_str(), sizeof(buffer) - 1);
+            buffer[sizeof(buffer)-1] = 0;
+            if (ImGui::InputText("Name", buffer, sizeof(buffer))) tag.Name = buffer;
         }
 
-        ImGui::Checkbox("Wireframe", &Ent.bDrawWireframe);
+        ImGui::Separator();
+
+        if (SelectedEntity.HasComponent<Core::TransformComponent>())
+        {
+            auto& transform = SelectedEntity.GetComponent<Core::TransformComponent>();
+            float pos[3] = { transform.Position.x, transform.Position.y, transform.Position.z };
+            if (ImGui::DragFloat3("Position", pos, 0.1f)) transform.Position = {pos[0], pos[1], pos[2]};
+
+            float rot[3] = { transform.RotationAxis.x, transform.RotationAxis.y, transform.RotationAxis.z };
+            if (ImGui::DragFloat3("Rot Axis", rot, 0.1f)) transform.RotationAxis = {rot[0], rot[1], rot[2]};
+            ImGui::DragFloat("Angle", &transform.Angle, 1.0f, 0.0f, 360.0f);
+
+            float scale[3] = { transform.Scale.x, transform.Scale.y, transform.Scale.z };
+            if (ImGui::DragFloat3("Scale", scale, 0.1f)) transform.Scale = {scale[0], scale[1], scale[2]};
+        }
+
+        ImGui::Separator();
+
+        if (SelectedEntity.HasComponent<Core::MeshRendererComponent>())
+        {
+            auto& renderer = SelectedEntity.GetComponent<Core::MeshRendererComponent>();
+            float col[4] = { renderer.BaseColor.r / 255.0f, renderer.BaseColor.g / 255.0f, renderer.BaseColor.b / 255.0f, renderer.BaseColor.a / 255.0f };
+            if (ImGui::ColorEdit4("Color", col)) 
+            {
+                renderer.BaseColor.r = static_cast<unsigned char>(col[0] * 255);
+                renderer.BaseColor.g = static_cast<unsigned char>(col[1] * 255);
+                renderer.BaseColor.b = static_cast<unsigned char>(col[2] * 255);
+                renderer.BaseColor.a = static_cast<unsigned char>(col[3] * 255);
+            }
+            ImGui::Checkbox("Wireframe", &renderer.bDrawWireframe);
+        }
     }
     else
     {

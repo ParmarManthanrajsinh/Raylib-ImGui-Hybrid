@@ -18,6 +18,7 @@ set(SOURCES
     src/Core/Logging/Log.h
     src/Core/Renderer/AssetManager.cpp
     src/Core/Renderer/AssetManager.h
+    src/Scene/Components.h
     src/Scene/Entity.h
     src/Scene/Scene.h
     src/Scene/Scene.cpp
@@ -29,6 +30,7 @@ target_include_directories(Engine PUBLIC
     src
     ../external/raylib/src
     ../external/raylib-cpp/include
+    ../external/entt-3.16.0/single_include
 )
 
 target_include_directories(Engine PRIVATE

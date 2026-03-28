@@ -15,6 +15,7 @@ namespace Core {
         virtual void OnAttach() {}
         virtual void OnDetach() {}
         virtual void OnUpdate(float DeltaTime) {}
+        virtual void OnRender() {}
         virtual void OnUIRender() {}
         virtual void OnEvent(FEvent& InEvent) {}
 

@@ -7,10 +7,11 @@ namespace Core
 
     std::shared_ptr<raylib::Model> AssetManager::RegisterModel(const std::string& Name, raylib::Model&& LoadedModel)
     {
-        if (ModelRegistry.find(Name) != ModelRegistry.end())
+        auto It = ModelRegistry.find(Name);
+        if (It != ModelRegistry.end())
         {
             FLog::CoreWarn("AssetManager: Model '{0}' is already registered!", Name);
-            return ModelRegistry[Name];
+            return It->second;
         }
 
         // Move the physical raylib model into a shared pointer memory block

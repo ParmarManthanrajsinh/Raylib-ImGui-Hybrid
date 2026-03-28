@@ -1,19 +1,25 @@
 #pragma once
-#include "Entity.h"
-#include <vector>
+#include "entt/entt.hpp"
+#include <string>
 
 namespace Core 
 {
+    class FEntity;
+
     class FScene 
     {
     public:
         FScene();
         ~FScene();
 
+        FEntity CreateEntity(const std::string& Name = std::string());
+        void DestroyEntity(FEntity entity);
+
         void OnUpdate(float DeltaTime);
-        std::vector<FEntity>& GetEntities() { return Entities; }
+
+        entt::registry& GetRegistry() { return Registry; }
 
     private:
-        std::vector<FEntity> Entities;
+        entt::registry Registry;
     };
 }

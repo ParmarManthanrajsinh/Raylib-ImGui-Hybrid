@@ -3,9 +3,9 @@
 #include "Scene/Scene.h"
 #include <raylib-cpp.hpp>
 #include <optional>
-#include <vector>
 #include <string>
 #include <memory>
+#include "Scene/Entity.h"
 
 class FGameLayer;
 
@@ -17,6 +17,7 @@ public:
     void OnAttach() override;
     void OnDetach() override;
     void OnUpdate(float DeltaTime) override;
+    void OnRender() override;
     void OnUIRender() override;
 
 private:
@@ -26,7 +27,6 @@ private:
 
 private:
     std::optional<raylib::RenderTexture2D> ViewportTexture;
-    raylib::Camera3D Camera;
 
     int ViewportWidth = 1280;
     int ViewportHeight = 720;
@@ -34,5 +34,5 @@ private:
     int DesiredViewportHeight = 720;
 
     class FGameLayer* GameLayerContext = nullptr;
-    int SelectedEntityIndex = -1;
+    Core::FEntity SelectedEntity;
 };

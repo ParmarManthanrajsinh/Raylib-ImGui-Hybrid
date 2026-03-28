@@ -1,9 +1,6 @@
 #pragma once
 
 #include <string>
-#include <thread>
-#include <atomic>
-#include <mutex>
 #include <raylib-cpp.hpp>
 
 #include "Core/Events/Event.h"
@@ -39,12 +36,12 @@ namespace Core
         // User Virtuals
         virtual void OnStart() {}
         virtual void OnUpdate(float DeltaTime) {}
+        virtual void OnRender() {}
         virtual void OnUIRender() {}
         virtual void OnShutdown() {}
         
         [[nodiscard]] GLFWwindow* GetWindow() const { return WindowHandle; }
         
-        // Sync data
         [[nodiscard]] int GetWidth() const { return Width; }
         [[nodiscard]] int GetHeight() const { return Height; }
         void SetSize(int NewWidth, int NewHeight) { Width = NewWidth; Height = NewHeight; }
@@ -57,8 +54,8 @@ namespace Core
         std::string Name;
         FApplicationConfig Config;
         
-        std::atomic<int> Width;
-        std::atomic<int> Height;
+        int Width;
+        int Height;
         GLFWwindow* WindowHandle;
         
         FLayerStack LayerStack;
