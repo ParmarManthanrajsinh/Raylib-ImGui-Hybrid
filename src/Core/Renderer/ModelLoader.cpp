@@ -3,7 +3,6 @@
 #include "Core/Vendor/ufbx.h"
 #include <raymath.h>
 #include <cstring>
-
 #include <vector>
 
 namespace Core 

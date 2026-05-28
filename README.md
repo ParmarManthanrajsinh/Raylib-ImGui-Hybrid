@@ -72,14 +72,18 @@ Unlike a standard game loop `while(!WindowShouldClose)`, we decouple the **OS Lo
 ### 2. The Layer Stack
 Everything in the engine is a `FLayer`. 
 ```cpp
-class GameLayer : public Core::FLayer {
-    void OnUpdate(float DeltaTime) override {
+class GameLayer : public Core::FLayer 
+{
+    void OnUpdate(float DeltaTime) override 
+    {
         // Run Physics, AI, Game Logic
     }
-    void OnUIRender() override {
+    void OnUIRender() override 
+    {
         // Draw ImGui Windows
     }
-    void OnEvent(Core::FEvent& Event) override {
+    void OnEvent(Core::FEvent& Event) override 
+    {
         // Handle Input
     }
 };

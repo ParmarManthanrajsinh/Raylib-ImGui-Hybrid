@@ -28,7 +28,7 @@ namespace Core
         FScopedTexture(FScopedTexture&& Other) noexcept
         {
             Texture = Other.Texture;
-            Other.Texture = { 0 };
+            Other.Texture = {};
         }
 
         FScopedTexture& operator=(FScopedTexture&& Other) noexcept
@@ -37,7 +37,7 @@ namespace Core
             {
                 if (Texture.id != 0) UnloadTexture(Texture);
                 Texture = Other.Texture;
-                Other.Texture = { 0 };
+                Other.Texture = {};
             }
             return *this;
         }
@@ -46,7 +46,7 @@ namespace Core
         [[nodiscard]] bool IsValid() const { return Texture.id != 0; }
 
     private:
-        Texture2D Texture = { 0 };
+        Texture2D Texture = {};
     };
 
     class FScopedRenderTexture
@@ -77,7 +77,7 @@ namespace Core
         FScopedRenderTexture(FScopedRenderTexture&& Other) noexcept
         {
             Texture = Other.Texture;
-            Other.Texture = { 0 };
+            Other.Texture = {};
         }
 
         FScopedRenderTexture& operator=(FScopedRenderTexture&& Other) noexcept
@@ -86,7 +86,7 @@ namespace Core
             {
                 if (Texture.id != 0) UnloadRenderTexture(Texture);
                 Texture = Other.Texture;
-                Other.Texture = { 0 };
+                Other.Texture = {};
             }
             return *this;
         }
@@ -98,7 +98,7 @@ namespace Core
         [[nodiscard]] bool IsValid() const { return Texture.id != 0; }
 
     private:
-        RenderTexture2D Texture = { 0 };
+        RenderTexture2D Texture = {};
     };
 
     class FScopedModel
@@ -130,7 +130,7 @@ namespace Core
         FScopedModel(FScopedModel&& Other) noexcept
         {
             ModelResource = Other.ModelResource;
-            Other.ModelResource = { 0 };
+            Other.ModelResource = {};
         }
 
         FScopedModel& operator=(FScopedModel&& Other) noexcept
@@ -139,7 +139,7 @@ namespace Core
              {
                  if (ModelResource.meshCount > 0) UnloadModel(ModelResource);
                  ModelResource = Other.ModelResource;
-                 Other.ModelResource = { 0 };
+                 Other.ModelResource = {};
              }
              return *this;
         }
@@ -148,7 +148,7 @@ namespace Core
         [[nodiscard]] bool IsValid() const { return ModelResource.meshCount > 0; }
 
     private:
-        Model ModelResource = { 0 };
+        Model ModelResource = {};
     };
 
 }

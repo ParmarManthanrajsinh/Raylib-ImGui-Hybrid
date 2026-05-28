@@ -1,8 +1,9 @@
 cmake_minimum_required(VERSION 3.21)
-project(raylib_imgui_hybrid LANGUAGES C CXX)
+project(App LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
@@ -12,11 +13,8 @@ set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(BUILD_GAMES OFF CACHE BOOL "" FORCE)
 set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
 
-# -----------------------------
-# Dependencies
-# -----------------------------
-
-# raylib
+# Dependencies : raylib, ImGui, etc.
+# Raylib
 add_subdirectory(external/raylib)
 
 # ImGui
@@ -29,6 +27,7 @@ add_library(imgui
     external/imgui/backends/imgui_impl_opengl3.cpp
 )
 
+# Directories
 target_include_directories(imgui PUBLIC
     external/imgui
     external/imgui/backends
@@ -68,47 +67,81 @@ set(SOURCES
     src/Layers/ModelViewerLayer.h
 )
 
-add_executable(raylib_imgui_hybrid ${SOURCES})
+add_executable(${PROJECT_NAME} ${SOURCES})
 
-target_include_directories(raylib_imgui_hybrid PRIVATE
+target_include_directories(${PROJECT_NAME} PRIVATE
     src
     external/raylib/src
 )
 
-target_include_directories(raylib_imgui_hybrid PRIVATE
+target_include_directories(${PROJECT_NAME} PRIVATE
     external/raylib/src/external/glfw/include
     external/glad/include
 )
 
-target_link_libraries(raylib_imgui_hybrid PRIVATE
+target_link_libraries(${PROJECT_NAME} PRIVATE
     raylib
     imgui
 )
 
 add_compile_definitions(NOMINMAX)
-target_compile_definitions(raylib_imgui_hybrid PRIVATE 
+target_compile_definitions(${PROJECT_NAME} PRIVATE 
     $<$<CONFIG:Debug>:CORE_DEBUG>
 )
 
-
-# -----------------------------
 # Copy Assets
-# -----------------------------
-add_custom_command(TARGET raylib_imgui_hybrid POST_BUILD
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
     "${CMAKE_SOURCE_DIR}/src/Core/Roboto-Regular.ttf"
-    "$<TARGET_FILE_DIR:raylib_imgui_hybrid>/Roboto-Regular.ttf"
+    "$<TARGET_FILE_DIR:${PROJECT_NAME}>/Roboto-Regular.ttf"
 )
 
-# -----------------------------
 # Platform-specific
-# -----------------------------
 if (WIN32)
-    target_link_libraries(raylib_imgui_hybrid PRIVATE opengl32)
+    target_compile_options(${PROJECT_NAME} PRIVATE 
+        /W4          # Standard "All Useful Warnings" for Microsoft Visual Studio
+        /permissive- # Enforces strict standard C++ conformance
+        $<$<CONFIG:Debug>:/WX>
+    )
+
+    # Usefull flags for Released and debug mode
+    target_compile_options(${PROJECT_NAME} PRIVATE
+        $<$<CONFIG:Debug>:/fsanitize=address>
+        $<$<CONFIG:Release>:/O2 /Oi /Gy>
+    )
+    target_link_options(${PROJECT_NAME} PRIVATE
+        $<$<CONFIG:Debug>:/fsanitize=address>
+    )
 elseif (UNIX AND NOT APPLE)
-    target_link_libraries(raylib_imgui_hybrid PRIVATE GL X11 pthread dl)
+    target_compile_options(${PROJECT_NAME} PRIVATE 
+        -Wall
+        -Wextra
+        $<$<CONFIG:Debug>:-Werror>
+    )
+    target_compile_options(${PROJECT_NAME} PRIVATE
+        $<$<CONFIG:Debug>:-fsanitize=address -fsanitize=undefined -fno-omit-frame-pointer>
+        $<$<CONFIG:Release>:-O3 -march=native -flto>
+    )
+    target_link_options(${PROJECT_NAME} PRIVATE
+        $<$<CONFIG:Debug>:-fsanitize=address -fsanitize=undefined>
+        $<$<CONFIG:Release>:-flto>
+    )
+    target_link_libraries(${PROJECT_NAME} PRIVATE GL X11 pthread dl)
 elseif (APPLE)
-    target_link_libraries(raylib_imgui_hybrid PRIVATE
+    target_compile_options(${PROJECT_NAME} PRIVATE 
+        -Wall
+        -Wextra
+        $<$<CONFIG:Debug>:-Werror>
+    )
+    target_compile_options(${PROJECT_NAME} PRIVATE
+        $<$<CONFIG:Debug>:-fsanitize=address -fsanitize=undefined -fno-omit-frame-pointer>
+        $<$<CONFIG:Release>:-O3 -march=native -flto>
+    )
+    target_link_options(${PROJECT_NAME} PRIVATE
+        $<$<CONFIG:Debug>:-fsanitize=address -fsanitize=undefined>
+        $<$<CONFIG:Release>:-flto>
+    )
+    target_link_libraries(${PROJECT_NAME} PRIVATE
         "-framework OpenGL"
         "-framework Cocoa"
         "-framework IOKit"
