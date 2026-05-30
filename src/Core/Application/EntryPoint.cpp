@@ -1,11 +1,11 @@
 #include "Application.h"
 #include <memory>
     
-extern Core::FApplication* CreateApplication();
+std::unique_ptr<Core::FApplication> CreateApplication();
 
 int main([[maybe_unused]]int argc, [[maybe_unused]] char** argv)
 {
-    auto App = std::unique_ptr<Core::FApplication>(CreateApplication());
+    auto App = CreateApplication();
     if(App) App->Run();
     return 0;
 }

@@ -1,4 +1,3 @@
 #pragma once
 #include "Application.h"
-
-extern Core::FApplication* CreateApplication();
+std::unique_ptr<Core::FApplication> CreateApplication();

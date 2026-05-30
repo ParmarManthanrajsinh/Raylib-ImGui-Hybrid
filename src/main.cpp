@@ -1,6 +1,7 @@
 #include "Core/Application/Application.h"
 #include "Core/Application/EntryPoint.h" // Includes main() and CreateApplication prototype
 #include "Layers/ModelViewerLayer.h"
+#include <memory>
 
 class FViewerApp : public Core::FApplication
 {
@@ -20,7 +21,12 @@ public:
     }
 };
 
-Core::FApplication* CreateApplication()
+// Core::FApplication* CreateApplication()
+// {
+//     return new FViewerApp();
+// }
+
+std::unique_ptr<Core::FApplication> CreateApplication()
 {
-    return new FViewerApp();
+    return std::make_unique<FViewerApp>();
 }
