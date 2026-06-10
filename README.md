@@ -1,89 +1,127 @@
 # Raylib + ImGui Hybrid Engine
 
-A high-performance codebase template combining **Raylib** (rendering) and **Dear ImGui** (UI) into a robust "Game Engine Editor" architecture. 
+A high-performance codebase template providing a robust **Game Engine Architecture** by combining **Raylib** for rendering and **Dear ImGui** for tooling.
 
-It features a **Multi-Threaded Render Loop** that completely solves the notorious "Window Freeze" issue on Windows, ensuring your game keeps running smoothly even while dragging, resizing, or clicking the title bar.
+![Badge](https://img.shields.io/badge/Language-C++23-blue)
+![Badge](https://img.shields.io/badge/Platform-Windows%20|%20Linux%20|%20macOS-lightgrey)
+![Badge](https://img.shields.io/badge/License-MIT-green)
 
-![](Showcase.gif)
+---
 
-## 🚀 Key Features
+## 📖 Overview
 
-*   **Hybrid Architecture**: Raylib handles the game scene (offscreen), while ImGui handles the windowing and tools.
-*   **Threaded Rendering**: A dedicated Render Thread decoupled from the OS Event Loop.
-    *   **Zero Freeze**: Dragging/Holding the window does *not* pause the game loop.
-    *   **Zero Stutter**: High-performance, uncapped rendering independent of Windows message pumping.
-*   **Unreal Engine Standards**: The codebase adheres to professional conventions:
-    *   `F` prefix for classes (`FApplication`).
-    *   `b` prefix for booleans.
-    *   PascalCase for members.
-    *   Allman-style formatting.
-*   **Editor-Ready**: Your game runs inside a dockable, resizable viewport—just like Unity or Unreal.
-*   **Self-Contained**: Statically linked dependencies (Raylib + ImGui).
+This project is not just a wrapper; it is a **Full Application Framework** designed to solve common challenges in Game Development tooling:
+*   **Multi-Threaded Architecture**: Solves the "Window Freeze" issue on Windows. Game logic runs on a dedicated thread, ensuring 100% responsiveness even when blocking the OS message loop.
+*   **Event-Driven**: A propagation system similar to professional engines (Unreal/Unity), allowing UI overlay layers to block events from reaching the game world.
+*   **Modern C++ Standards**: Built with **C++23** features, enforcing strict type safety, RAII resource management, and clean code practices.
+*   **Editor-Ready**: Includes a pre-configured Docking layout, Viewport rendering, and Console logging.
 
-## 🛠 Prerequisites
+## 🚀 Features
 
+### Core Architecture
+*   **Hybrid Rendering**: Raylib renders to an offscreen framebuffer, which is then drawn as an ImGui Image. This allows your game to exist as a "Window" within the Editor toolset.
+*   **Layer Stack**: Modularize your logic. Push an `Overlay` for UI (always on top) or a `Layer` for game worlds.
+*   **Event System**: 
+    *   Categories: `Application`, `Input`, `Keyboard`, `Mouse`.
+    *   Dispatch: `FEventDispatcher` uses C++ Concepts to ensure type safety.
+    *   Blocking: If a Layer handles an event (`bHandled = true`), lower layers never see it.
+
+### Developer Experience
+*   **Unreal Engine Style Architecture**: Clean, professional naming conventions (`FClass`, `bBool`, PascalCase) mixed with C++ standards.
+*   **Object-Oriented API**: Fully integrated with **raylib-cpp**, providing overloaded math operators and inline method calls instead of verbose C-functions.
+*   **RAII Resource Safety**: Seamless VRAM management. Models and Textures automatically unload when they go out of scope.
+*   **Logging**: Thread-safe colored logging via `FLog`.
+
+---
+
+## 📦 Getting Started
+
+### Prerequisites
 *   **CMake** (3.21+)
 *   **C++ Compiler** (Visual Studio 2022 recommended)
 *   **Git**
 
-## 📦 Getting Started
+### Installation
 
-### Windows (Visual Studio)
+1.  **Clone the Repository**
+    ```bash
+    git clone https://github.com/YourRepo/Raylib-ImGui-Hybrid.git
+    cd Raylib-ImGui-Hybrid
+    ```
 
-1.  **Configure**:
+2.  **Build (Windows)**
     ```powershell
     cmake -S . -B out/build
-    ```
-2.  **Build**:
-    ```powershell
     cmake --build out/build --config Release
     ```
-3.  **Run**:
+
+3.  **Run**
     ```powershell
     .\out\build\Release\raylib_imgui_hybrid.exe
     ```
 
-### Linux / macOS
+---
 
-1.  **Build & Run**:
-    ```bash
-    cmake -S . -B build
-    cmake --build build
-    ./build/raylib_imgui_hybrid
-    ```
+## 🧠 Deep Dive: Systems
 
-## 🧠 Architecture Overview
+### 1. The Threading Model
+Unlike a standard game loop `while(!WindowShouldClose)`, we decouple the **OS Loop** from the **Render Loop**.
+*   **Main Thread**: Handles `glfwWaitEvents`. It sleeps until the OS sends a signal (Mouse, Key, Resize). This keeps the app roughly 0% CPU usage when idle and incredibly responsive.
+*   **Render Thread**: Runs `FApplication::RenderLoop`. This acts as the "Game Thread". It owns the OpenGL Context and pumps frames as fast as `Interval` allows.
 
-### 1. The Separation
-Unlike standard Raylib apps, we do not run logic in the main `while(!WindowShouldClose)` loop.
-*   **Main Thread**: Dedicated to OS interaction (`glfwWaitEvents`). It sleeps constantly, waking only for Input/Window messages. This makes the UI feel incredibly responsive.
-*   **Render Thread**: Runs `FApplication::RenderLoop`. This thread owns the OpenGL context and runs as fast as possible, handling all Game Logic and Rendering.
-
-### 2. The Abstraction
-*   **Core**: The engine logic (`FApplication`, `EntryPoint`) is separated from user code.
-*   **Sandbox**: The user app (`FSandboxApp`) inherits from `FApplication` and simply overrides `OnStart`, `OnUpdate`, and `OnUIRender`.
-
-### 3. The Coding Standard
-We follow a strict set of rules inspired by Unreal Engine 5:
-*   **Classes**: `class FApplication`
-*   **Variables**: `int Width;`, `bool bIsRunning;`
-*   **Formatting**:
-    ```cpp
-    void Function() 
-    {
-        if (bCondition)
-        {
-            DoSomething();
-        }
+### 2. The Layer Stack
+Everything in the engine is a `FLayer`. 
+```cpp
+class GameLayer : public Core::FLayer {
+    void OnUpdate(float DeltaTime) override {
+        // Run Physics, AI, Game Logic
     }
-    ```
+    void OnUIRender() override {
+        // Draw ImGui Windows
+    }
+    void OnEvent(Core::FEvent& Event) override {
+        // Handle Input
+    }
+};
+```
+Pushing layers is done in your Application constructor:
+```cpp
+PushLayer(new GameLayer());
+PushOverlay(new ConsoleLayer());
+```
 
-## 📂 Project Structure
+### 3. Resource Management (RAII)
+We strictly avoid manual `Load/Unload` calls to prevent leaks. Through the **raylib-cpp** library, all backend C-structs are wrapped in classes holding their own lifecycles.
+*   **Bad (C-Style)**: `Texture2D tex = LoadTexture(...)` (Requires manual `UnloadTexture`)
+*   **Good (C++-Style)**: `raylib::Texture tex("assets/hero.png");` (Automatic cleanup)
 
-*   `src/Core/`: Engine internals (App loop, Threading, EntryPoint).
-*   `src/main.cpp`: The user application (Sandbox).
-*   `external/`: Raylib and ImGui sources.
-*   `CMakeLists.txt`: Build configuration.
+*Warning*: If you initialize resources at the Application level class, wrap them in `std::optional<raylib::Model>` and `.reset()` them during `OnShutdown()` so they unload *before* the OpenGL context terminates on the render thread.
 
 ---
-*License: MIT*
+
+## 🎨 Coding Standard
+
+We follow a strict set of rules inspired by **Unreal Engine 5** to maintain long-term maintainability.
+
+| Feature | Convention | Example |
+| :--- | :--- | :--- |
+| **Classes** | Prefix with `F` | `class FApplication` |
+| **Interfaces** | Prefix with `I` | `class IEntity` |
+| **Enums** | Prefix with `E` | `enum class EEventType` |
+| **Booleans** | Prefix with `b` | `bool bIsVisible` |
+| **Members** | PascalCase (No `m_`) | `float Width;` |
+| **Getters** | `[[nodiscard]]` | `[[nodiscard]] float GetWidth() const;` |
+
+---
+
+## 🤝 Contribution
+
+Contributions are welcome! Please ensure any Pull Requests adhere to the **Coding Standard** listed above. 
+1.  Fork the Project
+2.  Create your Feature Branch
+3.  Commit your Changes
+4.  Open a Pull Request
+
+---
+
+*Built with ❤️ using Raylib & Dear ImGui*
