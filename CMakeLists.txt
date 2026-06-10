@@ -3,6 +3,7 @@ project(raylib_imgui_hybrid LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
@@ -47,6 +48,7 @@ set(SOURCES
     src/Core/Application/ApplicationTheme.cpp
     src/Core/Application/ApplicationTheme.h
     src/Core/Application/EntryPoint.h
+    src/Core/Application/EntryPoint.cpp
     src/Core/Base/Core.h
     src/Core/Events/ApplicationEvent.h
     src/Core/Events/Event.h

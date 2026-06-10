@@ -15,5 +15,4 @@ namespace Core
         std::string FontPath = "Roboto-Regular.ttf";
         float FontSize = 20.0f;
     };
-
 }

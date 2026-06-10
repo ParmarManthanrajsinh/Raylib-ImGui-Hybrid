@@ -1,15 +1,9 @@
 #pragma once
-#include "Application.h"
+#include <memory>
 
-#include <memory> 
-
-extern Core::FApplication* CreateApplication();
-
-int main(int argc, char** argv)
+namespace Core
 {
-    auto App = std::unique_ptr<Core::FApplication>(CreateApplication());
-    App->Run();
-    return 0;
+    class FApplication;
 }
 
-
+std::unique_ptr<Core::FApplication> CreateApplication();

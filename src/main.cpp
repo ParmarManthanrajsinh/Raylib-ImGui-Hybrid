@@ -198,7 +198,7 @@ public:
     }
 };
 
-Core::FApplication* CreateApplication() 
+std::unique_ptr<Core::FApplication> CreateApplication()
 {
-    return new FSandboxApp();
+    return std::make_unique<FSandboxApp>();
 }
