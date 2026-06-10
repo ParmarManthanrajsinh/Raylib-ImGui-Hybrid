@@ -3,6 +3,7 @@ project(raylib_imgui_hybrid LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
@@ -37,7 +38,7 @@ target_include_directories(imgui PUBLIC
 
 
 # Source Files - Explicit List for Build Determinism
-set(SOURCES 
+set(SOURCES
     src/main.cpp
     src/Core/Application/Application.cpp
     src/Core/Application/Application.h
@@ -81,7 +82,7 @@ target_link_libraries(raylib_imgui_hybrid PRIVATE
 )
 
 add_compile_definitions(NOMINMAX)
-target_compile_definitions(raylib_imgui_hybrid PRIVATE 
+target_compile_definitions(raylib_imgui_hybrid PRIVATE
     $<$<CONFIG:Debug>:CORE_DEBUG>
 )
 
@@ -99,11 +100,11 @@ add_custom_command(TARGET raylib_imgui_hybrid POST_BUILD
 # Platform-specific
 # -----------------------------
 if (WIN32)
-    target_link_libraries(raylib_imgui_hybrid PRIVATE opengl32)
+  target_link_libraries(raylib_imgui_hybrid PRIVATE opengl32)
 elseif (UNIX AND NOT APPLE)
-    target_link_libraries(raylib_imgui_hybrid PRIVATE GL X11 pthread dl)
+  target_link_libraries(raylib_imgui_hybrid PRIVATE GL X11 pthread dl)
 elseif (APPLE)
-    target_link_libraries(raylib_imgui_hybrid PRIVATE
+  target_link_libraries(raylib_imgui_hybrid PRIVATE
         "-framework OpenGL"
         "-framework Cocoa"
         "-framework IOKit"
