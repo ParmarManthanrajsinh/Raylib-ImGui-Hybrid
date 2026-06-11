@@ -2,13 +2,22 @@
 #include <raylib-cpp.hpp>
 #include <optional>
 #include "Core/Application/EntryPoint.h"
+#include "Core/Base/Core.h"
+// #include "Core/Events/ApplicationEvent.h" // IWYU pragma: keep
 
 // The user application logic
 class FSandboxApp : public Core::FApplication 
 {
 public:
     FSandboxApp() 
-        : Core::FApplication(Core::FApplicationConfig{ .Name = "Raylib + ImGui Hybrid Engine", .Width = 1600, .Height = 900 })
+        : Core::FApplication
+          (
+              Core::FApplicationConfig
+              {
+                  .Name = "Raylib + ImGui Hybrid Engine", 
+                  .Width = 1600, .Height = 900 
+              }
+          )
     {
     }
 
@@ -58,8 +67,14 @@ public:
     {
         // --- Resource Management (Pre-Render) ---
         // Resize texture if requested by UI
-        if (DesiredViewportWidth > 0 && DesiredViewportHeight > 0 && 
-           (DesiredViewportWidth != ViewportWidth || DesiredViewportHeight != ViewportHeight))
+        if 
+        (
+            DesiredViewportWidth > 0 && DesiredViewportHeight > 0 && 
+           (
+               DesiredViewportWidth != ViewportWidth || 
+               DesiredViewportHeight != ViewportHeight
+           )
+        )
         {
             ViewportWidth = DesiredViewportWidth;
             ViewportHeight = DesiredViewportHeight;
@@ -198,7 +213,7 @@ public:
     }
 };
 
-std::unique_ptr<Core::FApplication> CreateApplication()
+Core::Scope<Core::FApplication> CreateApplication()
 {
-    return std::make_unique<FSandboxApp>();
+    return Core::CreateScope<FSandboxApp>(); 
 }

@@ -1,14 +1,11 @@
 #pragma once
 
-#include "Core/Base/Core.h"
-
-#include <memory>
 #include <string>
 #include <format>
-#include <print>
-#include <iostream>
+#include <print> // IWYU pragma: keep  
 
-namespace Core {
+namespace Core
+{
 
     class FLog
     {

@@ -1,9 +1,9 @@
 #pragma once
-#include <memory>
+#include "Core/Base/Core.h"
 
 namespace Core
 {
     class FApplication;
 }
 
-std::unique_ptr<Core::FApplication> CreateApplication();
+Core::Scope<Core::FApplication> CreateApplication();

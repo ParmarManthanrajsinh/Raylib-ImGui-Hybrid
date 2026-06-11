@@ -2,7 +2,8 @@
 #include "Core/Application/Application.h"
 #include <GLFW/glfw3.h>
 
-namespace Core {
+namespace Core
+{
 
     bool FInput::IsKeyPressed(int KeyCode)
     {
