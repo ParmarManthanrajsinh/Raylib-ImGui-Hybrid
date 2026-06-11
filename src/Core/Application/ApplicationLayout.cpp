@@ -4,7 +4,6 @@
 
 namespace Core 
 {
-
 // Default docking layout for the editor, loaded on startup
 static constexpr std::string_view APPLICATION_DEFAULT_INI = 
 R"(

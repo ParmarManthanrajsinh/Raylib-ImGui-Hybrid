@@ -3,8 +3,8 @@
 #include <string>
 #include <thread>
 #include <atomic>
-#include <mutex>
-#include "imgui.h"
+#include <mutex> // IWYU pragma: keep
+#include "imgui.h" // IWYU pragma: keep
 
 #include "Core/Events/Event.h"
 #include "Core/Events/ApplicationEvent.h"
@@ -34,7 +34,7 @@ namespace Core
 
         // Legacy Virtuals
         virtual void OnStart() {}
-        virtual void OnUpdate(float DeltaTime) {}
+        virtual void OnUpdate([[maybe_unused]] float DeltaTime) {}
         virtual void OnUIRender() {}
         virtual void OnShutdown() {}
         

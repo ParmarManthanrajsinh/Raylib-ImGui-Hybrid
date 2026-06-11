@@ -1,6 +1,6 @@
 #include "Application.h"
 #include "Core/Logging/Log.h"
-#include "Core/Input/Input.h"
+#include "Core/Input/Input.h" // IWYU pragma: keep
 
 #include <glad/glad.h>
 #include "GLFW/glfw3.h"
@@ -23,8 +23,8 @@ namespace Core
     FApplication* FApplication::s_Instance = nullptr;
 
     FApplication::FApplication(const FApplicationConfig& InConfig)
-        : Config(InConfig),
-          Name(InConfig.Name), 
+        : Name(InConfig.Name), 
+          Config(InConfig),
           Width(InConfig.Width), 
           Height(InConfig.Height),
           WindowHandle(nullptr), 
@@ -67,7 +67,7 @@ namespace Core
         }
     }
 
-    bool FApplication::OnWindowClose(FWindowCloseEvent& e)
+    bool FApplication::OnWindowClose(FWindowCloseEvent&)
     {
         bIsRunning = false;
         return true;
