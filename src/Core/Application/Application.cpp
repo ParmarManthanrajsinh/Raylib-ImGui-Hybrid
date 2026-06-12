@@ -2,7 +2,7 @@
 #include "Core/Logging/Log.h"
 #include "Core/Input/Input.h" // IWYU pragma: keep
 
-// --- FIX: Swap GLAD for standard WebGL headers on the Web ---
+// --- Swap GLAD for standard WebGL headers on the Web ---
 #ifdef CORE_PLATFORM_WEB
     #include <GLES3/gl3.h>
     #include <emscripten.h>
@@ -28,7 +28,7 @@ namespace Core
 {
     FApplication* FApplication::s_Instance = nullptr;
 
-    // --- FIX: Web Asynchronous Loop Anchor ---
+    // --- Web Asynchronous Loop Anchor ---
     #ifdef CORE_PLATFORM_WEB
     void EmscriptenLoopCallback(void* Arg)
     {
@@ -129,12 +129,12 @@ namespace Core
 
         // --- FIX: Downgrade Context Version Profile for WebGL ---
         #ifdef CORE_PLATFORM_WEB
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+            glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+            glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
         #else
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+            glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+            glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+            glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
         #endif
 
     #if __APPLE__
@@ -161,7 +161,7 @@ namespace Core
 
         ImGui_ImplGlfw_InitForOpenGL(WindowHandle, true);
 
-        // --- FIX: Separate Paths for Web vs Desktop ---
+        // --- Separate Paths for Web vs Desktop ---
         #ifdef CORE_PLATFORM_WEB
             // Web lacks secondary graphics threads. Execute everything inline.
             ImGui_ImplOpenGL3_Init("#version 100");
@@ -205,7 +205,7 @@ namespace Core
         #endif
     }
     
-    // --- FIX: The Core Web Tick Execution Target ---
+    // --- The Core Web Tick Execution Target ---
     #ifdef CORE_PLATFORM_WEB
     void FApplication::WebTick()
     {
