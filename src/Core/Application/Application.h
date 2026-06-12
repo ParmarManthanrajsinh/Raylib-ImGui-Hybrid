@@ -40,6 +40,12 @@ namespace Core
         
         // Internal usage for thread
         void RenderLoop();
+        
+        // --- Add Web Loop Target Signature ---
+        #ifdef CORE_PLATFORM_WEB
+        void WebTick();
+        #endif
+        
         [[nodiscard]] GLFWwindow* GetWindow() const { return WindowHandle; }
         
         // Sync data

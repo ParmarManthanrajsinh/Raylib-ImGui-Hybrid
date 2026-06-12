@@ -15,7 +15,12 @@ namespace Core
         FontConfig.OversampleV = 2;
         FontConfig.PixelSnapH = true;
 
-        IO.Fonts->AddFontFromFileTTF(Path.data(), 18.0f, &FontConfig);
+        #if defined(__EMSCRIPTEN__)
+            // This is guaranteed to fire on web builds
+            IO.Fonts->AddFontFromFileTTF("Core/Font/Roboto-Regular.ttf", 18.0f, &FontConfig);
+        #else
+            IO.Fonts->AddFontFromFileTTF(Path.data(), 18.0f, &FontConfig);
+        #endif
 
         ImGuiStyle& Style = ImGui::GetStyle();
         
@@ -121,6 +126,6 @@ namespace Core
         Style.TabRounding       = 4.0f;
         
         // Alignment
-        Style.WindowTitleAlign = ImVec2(0.02f, 0.5f); // Left aligned titles
+        Style.WindowTitleAlign = ImVec2(0.02f, 0.5f); 
     }
 }
