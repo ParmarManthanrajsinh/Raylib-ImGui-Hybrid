@@ -77,7 +77,7 @@ namespace Core
         for (auto It = LayerStack.rbegin(); It != LayerStack.rend(); ++It)
         {
             if (InEvent.bHandled) 
-                break;
+                break;  
             (*It)->OnEvent(InEvent);
         }
     }
