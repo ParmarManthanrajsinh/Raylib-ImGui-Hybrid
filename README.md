@@ -79,9 +79,9 @@ The engine fully supports WebAssembly, allowing you to run your application dire
 
 2.  **Activate the Environment**
     You MUST run the activation script for your platform in your current terminal before building:
-    - **Windows (Command Prompt):** `C:\Users\%USERNAME%\emsdk-main\emsdk_env.bat`
-    - **Windows (PowerShell):** `& "C:\Users\$env:USERNAME\emsdk-main\emsdk_env.ps1"`
-    - **Linux/macOS:** `source ~/emsdk-main/emsdk_env.sh`
+    - **Windows (Command Prompt):** `scripts\activate.bat`
+    - **Windows (PowerShell):** `. .\scripts\activate.ps1`
+    - **Linux/macOS:** `source scripts/activate.sh`
 
 3.  **Build for Web**
     ```bash
