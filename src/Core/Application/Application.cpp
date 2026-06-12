@@ -2,7 +2,14 @@
 #include "Core/Logging/Log.h"
 #include "Core/Input/Input.h" // IWYU pragma: keep
 
-#include <glad/glad.h>
+// --- FIX: Swap GLAD for standard WebGL headers on the Web ---
+#ifdef CORE_PLATFORM_WEB
+    #include <GLES3/gl3.h>
+    #include <emscripten.h>
+#else
+    #include <glad/glad.h>
+#endif
+
 #include "GLFW/glfw3.h"
 
 #include "imgui.h"
@@ -19,8 +26,16 @@ extern "C"
 
 namespace Core 
 {
-
     FApplication* FApplication::s_Instance = nullptr;
+
+    // --- FIX: Web Asynchronous Loop Anchor ---
+    #ifdef CORE_PLATFORM_WEB
+    void EmscriptenLoopCallback(void* Arg)
+    {
+        FApplication* App = static_cast<FApplication*>(Arg);
+        App->WebTick();
+    }
+    #endif
 
     FApplication::FApplication(const FApplicationConfig& InConfig)
         : Name(InConfig.Name), 
@@ -112,9 +127,15 @@ namespace Core
             return;
         }
 
+        // --- FIX: Downgrade Context Version Profile for WebGL ---
+        #ifdef CORE_PLATFORM_WEB
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+        #else
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
         glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+        #endif
 
     #if __APPLE__
         glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
@@ -128,12 +149,10 @@ namespace Core
             return;
         }
 
-        // Setup Main Thread callbacks
         glfwSetWindowUserPointer(WindowHandle, this);
         glfwSetFramebufferSizeCallback(WindowHandle, FramebufferSizeCallback);
         glfwSetWindowCloseCallback(WindowHandle, WindowCloseCallback);
 
-        // Initialize ImGui on Main Thread (Required for GLFW callbacks)
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
         
@@ -142,66 +161,118 @@ namespace Core
 
         ImGui_ImplGlfw_InitForOpenGL(WindowHandle, true);
 
-        // --- Thread Handoff ---
-        // We MUST release the context from the Main Thread so the Render Thread can claim it.
-        glfwMakeContextCurrent(nullptr);
-        
-        // Start Render Thread
-        bIsRunning = true;
-        RenderThread = std::thread(&FApplication::RenderLoop, this);
+        // --- FIX: Separate Paths for Web vs Desktop ---
+        #ifdef CORE_PLATFORM_WEB
+            // Web lacks secondary graphics threads. Execute everything inline.
+            ImGui_ImplOpenGL3_Init("#version 100");
+            rlLoadExtensions((void*)glfwGetProcAddress);
+            rlglInit(Width, Height);
+            OnStart();
+            PreviousTime = glfwGetTime();
+            bIsRunning = true;
 
-        // --- Main Event Loop ---
-        while (bIsRunning)
-        {
-            glfwWaitEvents();
-            
-            // Explicitly check for close to break the loop if bIsRunning was set to false by callback
-            if (glfwWindowShouldClose(WindowHandle)) 
+            // Hand loop management straight to browser framework
+            emscripten_set_main_loop_arg(EmscriptenLoopCallback, this, 0, 1);
+        #else
+            // Standard Multi-threaded Desktop Handoff Pipeline
+            glfwMakeContextCurrent(nullptr);
+            bIsRunning = true;
+            RenderThread = std::thread(&FApplication::RenderLoop, this);
+
+            while (bIsRunning)
             {
-                bIsRunning = false;
+                glfwWaitEvents();
+                if (glfwWindowShouldClose(WindowHandle)) 
+                {
+                    bIsRunning = false;
+                }
             }
-        }
 
-        // --- Cleanup ---
-        while (!bRenderLoopFinished)
-        {
-            glfwWaitEventsTimeout(0.005);
-        }
+            while (!bRenderLoopFinished)
+            {
+                glfwWaitEventsTimeout(0.005);
+            }
 
-        if (RenderThread.joinable())
-        {
-            RenderThread.join();
-        }
+            if (RenderThread.joinable())
+            {
+                RenderThread.join();
+            }
 
-        ImGui_ImplGlfw_Shutdown();
-        ImGui::DestroyContext();
-
-        glfwDestroyWindow(WindowHandle);
-        glfwTerminate();
+            ImGui_ImplGlfw_Shutdown();
+            ImGui::DestroyContext();
+            glfwDestroyWindow(WindowHandle);
+            glfwTerminate();
+        #endif
     }
     
-    // This runs on the SECONDARY THREAD
+    // --- FIX: The Core Web Tick Execution Target ---
+    #ifdef CORE_PLATFORM_WEB
+    void FApplication::WebTick()
+    {
+        glfwPollEvents();
+
+        double CurrentTime = glfwGetTime();
+        float DeltaSeconds = static_cast<float>(CurrentTime - PreviousTime);
+        PreviousTime = CurrentTime;
+
+        for (FLayer* Layer : LayerStack)
+            Layer->OnUpdate(DeltaSeconds);
+
+        OnUpdate(DeltaSeconds);
+
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        ImGui::NewFrame();
+
+        for (FLayer* Layer : LayerStack)
+            Layer->OnUIRender();
+
+        OnUIRender();
+        ImGui::Render();
+
+        glViewport(0, 0, Width, Height);
+        glClearColor(0.12f, 0.12f, 0.12f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        ImGui::NewFrame();
+
+        for (FLayer* Layer : LayerStack)
+            Layer->OnUIRender();
+            
+        OnUIRender();
+
+        ImGui::Render();
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+        glfwSwapBuffers(WindowHandle);
+
+        if (!bIsRunning || glfwWindowShouldClose(WindowHandle))
+        {
+            OnShutdown();
+            rlglClose();
+            ImGui_ImplOpenGL3_Shutdown();
+            ImGui_ImplGlfw_Shutdown();
+            ImGui::DestroyContext();
+            glfwDestroyWindow(WindowHandle);
+            glfwTerminate();
+            emscripten_cancel_main_loop();
+        }
+    }
+    #endif
+
+    // This runs on the SECONDARY THREAD (Desktop Only)
     void FApplication::RenderLoop()
     {
-        // CLAIM CONTEXT on this thread
         glfwMakeContextCurrent(WindowHandle);
-        glfwSwapInterval(1); // Disable VSync for max performance (or 1 if preferred at 60)
+        glfwSwapInterval(1); 
 
-        // Initialize GLAD / Extensions
         rlLoadExtensions((void*)glfwGetProcAddress);
-
-        // ImGui Context created on Main Thread, just need IO here
         ImGuiIO& IO = ImGui::GetIO();
-        
-        // Init OpenGL3 Backend (Needs GL Context)
         ImGui_ImplOpenGL3_Init("#version 330");
-
-        // Initialize Raylib's RLGL
         rlglInit(Width, Height);
 
-        // User Start
         OnStart();
-
         PreviousTime = glfwGetTime();
 
         while (bIsRunning)
@@ -210,30 +281,22 @@ namespace Core
             float DeltaSeconds = static_cast<float>(CurrentTime - PreviousTime);
             PreviousTime = CurrentTime;
 
-            // Updated Local Width/Height
             int CurrentW = Width;
             int CurrentH = Height;
 
-            // Update Layers
             for (FLayer* Layer : LayerStack)
                 Layer->OnUpdate(DeltaSeconds);
 
-            // Legacy Update (Keep for now)
             OnUpdate(DeltaSeconds);
 
-            // ImGui Frame
             ImGui_ImplOpenGL3_NewFrame();
             ImGui_ImplGlfw_NewFrame();
             ImGui::NewFrame();
 
-            // Render Layers UI
             for (FLayer* Layer : LayerStack)
                 Layer->OnUIRender();
 
-            // Legacy UI Render
             OnUIRender();
-
-            // Render Frame
             ImGui::Render();
 
             glViewport(0, 0, CurrentW, CurrentH);
@@ -253,14 +316,9 @@ namespace Core
             glfwSwapBuffers(WindowHandle);
         }
 
-        // User Shutdown (on thread)
         OnShutdown();
-
-        // Cleanup (on thread)
         rlglClose();
         ImGui_ImplOpenGL3_Shutdown();
-
         bRenderLoopFinished = true;
     }
-
 }

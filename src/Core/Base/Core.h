@@ -24,11 +24,15 @@
 #elif defined(__ANDROID__)
     #define CORE_PLATFORM_ANDROID
     #error "Android not supported!"
+#elif defined(__EMSCRIPTEN__)
+    // Added for WebAssembly Support (Must be placed before __linux__)
+    #define CORE_PLATFORM_WEB
 #elif defined(__linux__)
     #define CORE_PLATFORM_LINUX
 #else
     #error "Unknown Platform!"
 #endif
+
 
 // Debug Assertions
 #ifdef CORE_DEBUG
