@@ -77,11 +77,11 @@ The engine fully supports WebAssembly, allowing you to run your application dire
     - Set up the required tools
     - Provide instructions for environment setup
 
-2.  **Follow the Environment Setup** (if prompted)
-    ```bash
-    # The script will show you the exact command, similar to:
-    source ~/emsdk-main/emsdk_env.sh
-    ```
+2.  **Activate the Environment**
+    You MUST run the activation script for your platform in your current terminal before building:
+    - **Windows (Command Prompt):** `C:\Users\%USERNAME%\emsdk-main\emsdk_env.bat`
+    - **Windows (PowerShell):** `& "C:\Users\$env:USERNAME\emsdk-main\emsdk_env.ps1"`
+    - **Linux/macOS:** `source ~/emsdk-main/emsdk_env.sh`
 
 3.  **Build for Web**
     ```bash
@@ -99,10 +99,10 @@ The engine fully supports WebAssembly, allowing you to run your application dire
     mkdir build-web
     cd build-web
     emcmake cmake .. -DPLATFORM=Web
-    emmake make
+    cmake --build .
     python -m http.server 8000
     ```
-    Then open `http://localhost:8000` in your browser.
+    Then open `http://localhost:8000/raylib_imgui_hybrid.html` in your browser.
 
 #### WebAssembly Platform-Specific Notes
 

@@ -55,12 +55,9 @@ def main():
     else:
         build_folder.mkdir(parents=True, exist_ok=True)
 
-    # 3. Detect system type
-    generator = '-G "MinGW Makefiles"' if sys.platform.startswith("win32") else '-G "Unix Makefiles"'
-
-    # 4. Generate build files
+    # 3. Generate build files
     print_info("Configuring project targets...")
-    cmake_cmd = f'cmake "{project_root}" {generator} -DCMAKE_TOOLCHAIN_FILE="{toolchain_file}" -DPLATFORM=Web -DCMAKE_C_FLAGS="-Wno-tautological-compare" -DCMAKE_CXX_FLAGS="-Wno-tautological-compare"'
+    cmake_cmd = f'emcmake cmake "{project_root}" -DCMAKE_TOOLCHAIN_FILE="{toolchain_file}" -DPLATFORM=Web -DCMAKE_C_FLAGS="-Wno-tautological-compare" -DCMAKE_CXX_FLAGS="-Wno-tautological-compare"'
     run_command(cmake_cmd, build_folder)
 
     # 5. Compile
