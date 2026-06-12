@@ -3,7 +3,7 @@
 A high-performance codebase template providing a robust **Game Engine Architecture** by combining **Raylib** for rendering and **Dear ImGui** for tooling.
 
 ![Badge](https://img.shields.io/badge/Language-C++23-blue)
-![Badge](https://img.shields.io/badge/Platform-Windows%20|%20Linux%20|%20macOS-lightgrey)
+![Badge](https://img.shields.io/badge/Platform-Windows%20|%20Linux%20|%20macOS%20|%20Web-lightgrey)
 ![Badge](https://img.shields.io/badge/License-MIT-green)
 
 ---
@@ -15,6 +15,7 @@ This project is not just a wrapper; it is a **Full Application Framework** desig
 *   **Event-Driven**: A propagation system similar to professional engines (Unreal/Unity), allowing UI overlay layers to block events from reaching the game world.
 *   **Modern C++ Standards**: Built with **C++23** features, enforcing strict type safety, RAII resource management, and clean code practices.
 *   **Editor-Ready**: Includes a pre-configured Docking layout, Viewport rendering, and Console logging.
+*   **🌐 WebAssembly Support**: Run your game directly in the browser with a single command!
 
 ## 🚀 Features
 
@@ -38,10 +39,11 @@ This project is not just a wrapper; it is a **Full Application Framework** desig
 
 ### Prerequisites
 *   **CMake** (3.21+)
-*   **C++ Compiler** (Visual Studio 2022 recommended)
+*   **C++ Compiler** (Visual Studio 2022, GCC 11+, or Clang 14+)
 *   **Git**
+*   **Python** (3.6+ for WebAssembly build)
 
-### Installation
+### Native Platform Build
 
 1.  **Clone the Repository**
     ```bash
@@ -60,6 +62,70 @@ This project is not just a wrapper; it is a **Full Application Framework** desig
     .\out\build\Release\raylib_imgui_hybrid.exe
     ```
 
+### 🌐 WebAssembly Build (Run in Browser)
+
+The engine fully supports WebAssembly, allowing you to run your application directly in a web browser.
+
+#### One-Command Setup & Build
+
+1.  **Install Emscripten SDK**
+    ```bash
+    python scripts/install_emsdk.py
+    ```
+    This script will:
+    - Download and install Emscripten SDK
+    - Set up the required tools
+    - Provide instructions for environment setup
+
+2.  **Follow the Environment Setup** (if prompted)
+    ```bash
+    # The script will show you the exact command, similar to:
+    source ~/emsdk-main/emsdk_env.sh
+    ```
+
+3.  **Build for Web**
+    ```bash
+    python scripts/build.py
+    ```
+    This will:
+    - Configure CMake for Emscripten
+    - Compile your code to WebAssembly
+    - Generate HTML, JS, and WASM files
+    - Start a local web server
+    - Automatically open your browser
+
+4.  **Manual Web Build** (Alternative)
+    ```bash
+    mkdir build-web
+    cd build-web
+    emcmake cmake .. -DPLATFORM=Web
+    emmake make
+    python -m http.server 8000
+    ```
+    Then open `http://localhost:8000` in your browser.
+
+#### WebAssembly Platform-Specific Notes
+
+The engine automatically handles platform differences:
+
+```cpp
+#ifdef CORE_PLATFORM_WEB
+    // WebAssembly-specific fixes
+    ClearBackground({BgColor.r, BgColor.g, BgColor.b, 255});
+    ImGui::GetIO().FontGlobalScale = 1.5f;  // Better UI scaling
+#else
+    // Native desktop behavior
+    BgColor.ClearBackground();
+#endif
+```
+
+**Known WebAssembly Behavior:**
+- ✅ Full event system works (Keyboard, Mouse, Input)
+- ✅ ImGui Docking and UI rendering
+- ✅ RenderTexture for viewport
+- ⚠️ Use raw Raylib C functions for 3D drawing (colors work properly)
+- ⚠️ UI may require font scaling for better readability
+
 ---
 
 ## 🧠 Deep Dive: Systems
@@ -69,17 +135,23 @@ Unlike a standard game loop `while(!WindowShouldClose)`, we decouple the **OS Lo
 *   **Main Thread**: Handles `glfwWaitEvents`. It sleeps until the OS sends a signal (Mouse, Key, Resize). This keeps the app roughly 0% CPU usage when idle and incredibly responsive.
 *   **Render Thread**: Runs `FApplication::RenderLoop`. This acts as the "Game Thread". It owns the OpenGL Context and pumps frames as fast as `Interval` allows.
 
+*Note: WebAssembly uses a single-threaded model with `emscripten_set_main_loop`.*
+
 ### 2. The Layer Stack
 Everything in the engine is a `FLayer`. 
 ```cpp
-class GameLayer : public Core::FLayer {
-    void OnUpdate(float DeltaTime) override {
+class GameLayer : public Core::FLayer 
+{
+    void OnUpdate(float DeltaTime) override 
+    {
         // Run Physics, AI, Game Logic
     }
-    void OnUIRender() override {
+    void OnUIRender() override 
+    {
         // Draw ImGui Windows
     }
-    void OnEvent(Core::FEvent& Event) override {
+    void OnEvent(Core::FEvent& Event) override 
+    {
         // Handle Input
     }
 };
@@ -106,11 +178,30 @@ We follow a strict set of rules inspired by **Unreal Engine 5** to maintain long
 | Feature | Convention | Example |
 | :--- | :--- | :--- |
 | **Classes** | Prefix with `F` | `class FApplication` |
-| **Interfaces** | Prefix with `I` | `class IEntity` |
+| **Interfaces** | Prefix with `I` | `interface IEntity` |
 | **Enums** | Prefix with `E` | `enum class EEventType` |
 | **Booleans** | Prefix with `b` | `bool bIsVisible` |
 | **Members** | PascalCase (No `m_`) | `float Width;` |
 | **Getters** | `[[nodiscard]]` | `[[nodiscard]] float GetWidth() const;` |
+
+---
+
+## 🛠️ Project Structure
+
+```
+Raylib-ImGui-Hybrid/
+├── scripts/
+│   ├── install_emsdk.py      # Emscripten installer
+│   └── build.py               # WebAssembly build script
+├── external/
+│   └── raylib/                # Raylib submodule
+├── Core/                      # Engine framework
+│   ├── Application/           # App lifecycle & layer stack
+│   ├── Events/                # Event system
+│   └── Log/                   # Logging system
+├── Sandbox/                   # Example application
+└── CMakeLists.txt             # Build configuration
+```
 
 ---
 
@@ -121,6 +212,12 @@ Contributions are welcome! Please ensure any Pull Requests adhere to the **Codin
 2.  Create your Feature Branch
 3.  Commit your Changes
 4.  Open a Pull Request
+
+---
+
+## 📝 License
+
+Distributed under the MIT License. See `LICENSE` file for more information.
 
 ---
 
