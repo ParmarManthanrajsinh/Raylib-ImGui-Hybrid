@@ -2,7 +2,7 @@
 #include <raylib-cpp.hpp>
 #include <optional>
 #include "Core/Application/EntryPoint.h"
-#include "Core/Base/Core.h"
+#include "Core/Base/Core.h" // IWYU pragma: keep
 // #include "Core/Events/ApplicationEvent.h" // IWYU pragma: keep
 
 // The user application logic
@@ -64,7 +64,6 @@ public:
     void OnUpdate(float DeltaTime) override 
     {
         // --- Resource Management (Pre-Render) ---
-        // Resize texture if requested by UI
         if 
         (
             DesiredViewportWidth > 0 && DesiredViewportHeight > 0 && 
@@ -78,22 +77,27 @@ public:
             ViewportHeight = DesiredViewportHeight;
             SceneTexture.emplace(ViewportWidth, ViewportHeight);
         }
-
+    
         // --- Update Logic ---
         if (bAutoRotate) 
         {
             CubeRotation += (45.0f * DeltaTime * RotationSpeed);
             if (CubeRotation > 360.0f) CubeRotation -= 360.0f;
         }
-
+    
         // --- Render Scene to Texture ---
         if (SceneTexture.has_value() && SceneTexture->IsValid())
         {
             SceneTexture->BeginMode();
-            BgColor.ClearBackground();
-
+    
+            #ifdef CORE_PLATFORM_WEB
+                ClearBackground({BgColor.r, BgColor.g, BgColor.b, 255});
+            #else
+                BgColor.ClearBackground();
+            #endif
+            
             Camera.BeginMode();
-
+    
                 // Draw Grid
                 DrawGrid(10, 1.0f);
                 
@@ -101,22 +105,45 @@ public:
                 DrawLine3D({0,0,0}, {1,0,0}, RED);
                 DrawLine3D({0,0,0}, {0,1,0}, GREEN);
                 DrawLine3D({0,0,0}, {0,0,1}, BLUE);
-
+    
                 // Draw Rotating Cube
-                const raylib::Vector3 CubePos(0.0f, 0.5f, 0.0f);
-                const raylib::Vector3 RotationAxis(0.0f, 1.0f, 0.0f);
-                const raylib::Vector3 Scale(1.0f, 1.0f, 1.0f);
-
-                if (bDrawWireframe) 
-                {
-                    CubeModel->DrawWires(CubePos, RotationAxis, CubeRotation, Scale, CubeColor);
-                } 
-                else 
-                {
-                    CubeModel->Draw(CubePos, RotationAxis, CubeRotation, Scale, CubeColor);
-                    CubeModel->DrawWires(CubePos, RotationAxis, CubeRotation, Scale, BLACK);
-                }
-
+                raylib::Vector3 CubePos(0.0f, 0.5f, 0.0f);
+                raylib::Vector3 CubeSize(1.5f, 1.5f, 1.5f);
+                
+                #ifdef CORE_PLATFORM_WEB
+                    // WebAssembly: Use raw Raylib C functions
+                    rlPushMatrix();
+                    rlTranslatef(CubePos.x, CubePos.y, CubePos.z);
+                    rlRotatef(CubeRotation, 0, 1, 0);
+                    rlTranslatef(-CubePos.x, -CubePos.y, -CubePos.z);
+                    
+                    if (bDrawWireframe) 
+                    {
+                        DrawCubeWiresV(CubePos, CubeSize, CubeColor);
+                    } 
+                    else 
+                    {
+                        DrawCubeV(CubePos, CubeSize, CubeColor);
+                        DrawCubeWiresV(CubePos, CubeSize, BLACK);
+                    }
+                    
+                    rlPopMatrix();
+                #else
+                    // Desktop: Use raylib-cpp wrapper
+                    const raylib::Vector3 RotationAxis(0.0f, 1.0f, 0.0f);
+                    const raylib::Vector3 Scale(1.0f, 1.0f, 1.0f);
+                    
+                    if (bDrawWireframe) 
+                    {
+                        CubeModel->DrawWires(CubePos, RotationAxis, CubeRotation, Scale, CubeColor);
+                    } 
+                    else 
+                    {
+                        CubeModel->Draw(CubePos, RotationAxis, CubeRotation, Scale, CubeColor);
+                        CubeModel->DrawWires(CubePos, RotationAxis, CubeRotation, Scale, BLACK);
+                    }
+                #endif
+    
             Camera.EndMode();
             SceneTexture->EndMode();
         }
