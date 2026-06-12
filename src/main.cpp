@@ -7,7 +7,7 @@
 
 // The user application logic
 class FSandboxApp : public Core::FApplication 
-{
+{   
 public:
     FSandboxApp() 
         : Core::FApplication
@@ -17,9 +17,7 @@ public:
                   .Name = "Raylib + ImGui Hybrid Engine", 
                   .Width = 1600, .Height = 900 
               }
-          )
-    {
-    }
+          ) {}
 
     // Scene Resources
     std::optional<raylib::RenderTexture2D> SceneTexture;
@@ -148,7 +146,8 @@ public:
         if (bAutoRotate) 
         {
              ImGui::SliderFloat("Speed", &RotationSpeed, 0.0f, 5.0f);
-        } else 
+        } 
+        else 
         {
              ImGui::SliderFloat("Rotation", &CubeRotation, 0.0f, 360.0f);
         }

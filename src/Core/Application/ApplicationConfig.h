@@ -12,7 +12,7 @@ namespace Core
         bool bMaximized = false;
         
         // Resource paths
-        std::string FontPath = "Roboto-Regular.ttf";
+        std::string FontPath = "/src/Core/Font/Roboto-Regular.ttf";
         float FontSize = 20.0f;
     };
 }
